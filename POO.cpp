@@ -170,6 +170,35 @@ public:
     string getMateriaAsignada() const { return materiaAsignada; }
 };
 
+//ESTRUCTURA DE ASIGNACION (registro de una asignacion de materia a un monitor)
+
+struct Asignacion {
+    Monitor* monitor;
+    string materiaAnterior;
+    string materiaNueva;
+};
+
+// CLASE PILA DE ASIGNACIONES (para permitir deshacer la ultima asignacion)
+class PilaAsignaciones {
+    private:
+        vector<Asignacion> elementos;
+
+    public:
+    void push(const Asignacion& a){
+        elementos.push_back(a);
+    }
+    void pop(){
+        if(!elementos.empty()){
+            elementos.pop_back();
+        }
+    }
+    Asignacion top() const{
+        return elementos.back();}
+    bool isEmpty() const{
+        return elementos.empty();
+    }
+};
+
 // CLASE SOLICITUD
 class Solicitud {
 /* Pendiente por implementar */
@@ -185,6 +214,38 @@ class ColaSolicitudes {
 class GestorUsuarios {
 /* Pendiente por agregar el gestor de materias y los metodos para registrar y mostrar materias */
 };
+
+//FUNcIONES DE ASIGNACION (usando la pila)
+
+//Asigna una materia a un monitor y guarda el cambio para poder deshacero
+
+void asignarMateriaAMonitor(Monitor& mon, const string& codigoMateria, PilaAsignaciones& historial) {
+    Asignacion a;
+    a.monitor = &mon;
+    a.materiaAnterior = mon.getMateriaAsignada();
+    a.materiaNueva = codigoMateria;
+    historial.push(a);              // Guarda para poder deshacer
+    mon.asignarMateria(codigoMateria);
+    cout << "Se asigno la materia " << codigoMateria << " a " << mon.getNombres() << "." << endl;
+}
+
+//Deshacer la última asignación de monítoria, implementando una pila
+
+void deshacerAsignacion(PilaAsignaciones& historial) {
+    if (historial.isEmpty()) {
+        cout << "No hay asignaciones para deshacer." << endl;
+        return;
+    }
+
+    Asignacion ultima = historial.top();   // Leer la cima
+    historial.pop();                       // Quitarla de la pila
+
+    // Restaurar la materia anterior
+    ultima.monitor->asignarMateria(ultima.materiaAnterior);
+
+    cout << "Se deshizo la asignacion de " << ultima.materiaNueva
+         << " a " << ultima.monitor->getNombres() << endl;
+}
 
 // MENUS POR ROL
 void menuEstudiante(Estudiante &est) {
@@ -234,13 +295,15 @@ void menuMonitor(Monitor &mon) {
     }
 }
 
-void menuAdministrador(Administrador &admin) {
+void menuAdministrador(Administrador &admin, Monitor &mon, PilaAsignaciones &historial) {
     int opcion = -1;
     while (opcion != 0) {
         cout << "\n--- MENU ADMINISTRADOR (" << admin.getNombres() << ") ---" << endl;
         cout << "1. Ver materias registradas" << endl;
         cout << "2. Registrar nueva materia" << endl;
         cout << "3. Ver todas las solicitudes" << endl;
+        cout << "4. Asignar materia a monitor" << endl;
+        cout << "5. Deshacer ultima asignacion" << endl;
         cout << "0. Cerrar sesion" << endl;
         cout << "Seleccione una opcion: ";
         cin >> opcion;
@@ -254,11 +317,18 @@ void menuAdministrador(Administrador &admin) {
         } else if (opcion == 3) {
             cout << "Pendiente por implementar la visualización de todas las solicitudes." << endl;
             //Pendiente por implementar la visualización de todas las solicitudes
-        } else if (opcion != 0) {
-            cout << "Opcion invalida." << endl;
+        } else if (opcion == 4) {
+            string codigo;
+            cout << "Codigo de la materia";
+            cin >> codigo;
+            asignarMateriaAMonitor(mon, codigo, historial);
+        } else if (opcion == 5) {
+            deshacerAsignacion(historial);
+        } else if (opcion != 0){
+            cout << "Opción invalida" << endl;
         }
     }
-};
+}
 
 void menuPruebas(){
     cout << "=====================================" << endl;
@@ -282,6 +352,7 @@ int main() {
     // Objetos de apoyo (todavia sin funcionalidad interna, pendientes por implementar)
     GestorUsuarios gestor;
     ColaSolicitudes cola;
+    PilaAsignaciones historialAsignaciones;
 
     // Usuarios base para poder ingresar y probar los menus
     Administrador admin("David", "Arteaga", "admin", "admin123", 001);
@@ -306,7 +377,7 @@ int main() {
             // Se valida el usuario contra los tres usuarios base disponibles
             if (admin.autenticarUsuario(user, pass)) {
                 admin.informacion();
-                menuAdministrador(admin);
+                menuAdministrador(admin, monitor, historialAsignaciones);
             } else if (estudiante.autenticarUsuario(user, pass)) {
                 estudiante.informacion();
                 menuEstudiante(estudiante);
