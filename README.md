@@ -3,7 +3,7 @@
 <p align="center">
   <b>Aplicación de consola en C++ para gestionar monitorías universitarias:</b><br>
   usuarios con roles, catálogo de materias con prerrequisitos y una cola de solicitudes que atiende primero lo más urgente.<br>
-  Todas las estructuras de datos (<b>pila</b> y <b>cola con prioridad</b>) y los algoritmos de <b>búsqueda</b>, <b>ordenamiento</b> y <b>recursión</b> están implementados a mano, sin usar contenedores de la STL que los resuelvan por nosotros.
+  Todas las estructuras de datos (<b>pila</b> y <b>cola con prioridad</b>) y los algoritmos de <b>búsqueda</b>, <b>ordenamiento</b> y <b>recursión</b>.
 </p>
 
 <p align="center">
