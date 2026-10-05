@@ -1,0 +1,5 @@
+Administrador,David,Arteaga,admin,admin123,1,1
+Estudiante,Tatiana,Cabrera,estudiante,estu123,1,1,Ingenieria de Sistemas,5
+Monitor,Julian,Hernandez,monitor,mon123,1,1,Ingenieria de Sistemas,8,1,Lunes a Viernes 2pm-4pm,
+Profesor,Carlos,Gomez,profesor,prof123,1,Ingenieria
+Estudiante,JUAN CARLOS,REINA CARDONA,juan123,carlos123,1,2,MACC,2
