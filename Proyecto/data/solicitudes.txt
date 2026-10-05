@@ -1,0 +1,4 @@
+1,1,MAT101,2,Pendiente,Refuerzo en integrales definidas
+2,1,PROG102,3,Atendida,Dudas sobre polimorfismo y herencia
+3,1,PROG102,2,Cancelada,Para aprender acerca de github
+4,1,FIS105,2,Pendiente,En todo
