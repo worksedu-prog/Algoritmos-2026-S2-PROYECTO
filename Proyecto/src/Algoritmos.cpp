@@ -112,9 +112,49 @@ long ordenarQuickSort(vector<Materia>& v, int criterio) {
     return comparaciones;
 }
 
+// NUEVO un Ordenamiento de SOLICITUDES (merge sort recursivo, O(n log n), estable)
+
+// Dice si 'a' va antes que 'b'. Siempre desempata por id (la mas antigua primero),
+// asi el orden es total y el resultado es el mismo en cualquier ejecucion.
+static bool solicitudMenorQue(const Solicitud& a, const Solicitud& b, int criterio, long& comparaciones) {
+    comparaciones++;
+    if (criterio == SOL_POR_URGENCIA && a.getUrgencia() != b.getUrgencia())
+        return a.getUrgencia() > b.getUrgencia();                       // mayor urgencia primero
+    if (criterio == SOL_POR_MATERIA && a.getCodigoMateria() != b.getCodigoMateria())
+        return a.getCodigoMateria() < b.getCodigoMateria();             // orden alfabetico por codigo
+    return a.getId() < b.getId();                                       // antiguedad (y desempate)
+}
+
+static void mezclarSolicitudes(vector<Solicitud>& v, int izq, int medio, int der, int criterio, long& comparaciones) {
+    vector<Solicitud> izquierda(v.begin() + izq, v.begin() + medio + 1);
+    vector<Solicitud> derecha(v.begin() + medio + 1, v.begin() + der + 1);
+    int i = 0, j = 0;
+    int k = izq;
+    while (i < izquierda.size() && j < derecha.size()) {
+        if (solicitudMenorQue(derecha[j], izquierda[i], criterio, comparaciones)) v[k++] = derecha[j++];
+        else v[k++] = izquierda[i++];
+    }
+    while (i < izquierda.size()) v[k++] = izquierda[i++];
+    while (j < derecha.size()) v[k++] = derecha[j++];
+}
+
+static void mergeSortSolicitudesRec(vector<Solicitud>& v, int izq, int der, int criterio, long& comparaciones) {
+    if (izq >= der) return;                       // caso base: 0 o 1 elemento
+    int medio = izq + (der - izq) / 2;
+    mergeSortSolicitudesRec(v, izq, medio, criterio, comparaciones);
+    mergeSortSolicitudesRec(v, medio + 1, der, criterio, comparaciones);
+    mezclarSolicitudes(v, izq, medio, der, criterio, comparaciones);
+}
+
+long ordenarSolicitudes(vector<Solicitud>& v, int criterio) {
+    long comparaciones = 0;
+    if (v.size() > 1) mergeSortSolicitudesRec(v, 0, static_cast<int>(v.size()) - 1, criterio, comparaciones);
+    return comparaciones;
+}
+
 // Recursion sobre prerrequisitos: 
 //Caso base: materia sin prerrequisitos.
-// Caso recursivo: repetir para cada prerrequisito
+//Caso recursivo: repetir para cada prerrequisito
 void mostrarPrerrequisitos(const vector<Materia>& materias, const string& codigo, int nivel) {
     long ignorar = 0;
     int pos = buscarMateriaBinaria(materias, codigo, ignorar);

@@ -25,7 +25,7 @@ private:
     string codigoMateria;
     int urgencia;
     string descripcion;
-    string estado;           // "Pendiente", "Atendida" o "Cancelada"
+    string estado;           // "Pendiente", "Asignada", "Atendida" o "Cancelada"
 
 public:
     Solicitud() : id(0), codigoEstudiante(0), urgencia(URGENCIA_BAJA), estado("Pendiente") {}
@@ -63,9 +63,14 @@ private:
     vector<ItemCola> elementos;
 
 public:
+    // Mayor urgencia primero; a igual urgencia, el id menor (la mas antigua) primero.
+    // Compara tambien por id hace que una solicitud reencolada (al deshacer
+    // una asignacion) recupere su lugar por antiguedad y no quede al final de su urgencia.
     void encolar(int id, int urgencia) {
         int pos = 0;
-        while (pos < elementos.size() && elementos[pos].urgencia >= urgencia) pos++;
+        while (pos < elementos.size() &&
+               (elementos[pos].urgencia > urgencia ||
+                (elementos[pos].urgencia == urgencia && elementos[pos].id < id))) pos++;
         elementos.insert(elementos.begin() + pos, ItemCola{id, urgencia});
     }
 

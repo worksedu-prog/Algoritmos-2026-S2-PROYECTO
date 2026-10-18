@@ -1,3 +1,4 @@
+//GestorArchivos.cpp
 #include "../include/GestorArchivos.h"
 #include <fstream>
 #include <sstream>
@@ -5,7 +6,7 @@
 
 using namespace std;
 
-// Función para recortar espacios y retornos ('\r')
+// Función para recortar espacios y retornos
 static string trim(const string& str) {
     int first = str.find_first_not_of(" \t\r\n");
     if (first == string::npos) return "";
@@ -30,7 +31,6 @@ static vector<string> separar(const string& linea, char delim, int maxPartes = 0
     return partes;
 }
 
-
 static long aLong(const string& s) { try { return stol(s); } catch (...) { return 0; } }
 static int aInt(const string& s) { try { return stoi(s); } catch (...) { return 0; } }
 
@@ -46,7 +46,6 @@ string GestorArchivos::resolverRuta(const string& ruta) const {
     }
     return ruta;
 }
-
 
 // PERSISTENCIA USUARIOS
 bool GestorArchivos::cargarUsuarios(vector<Usuario*>& usuarios) {
@@ -101,7 +100,6 @@ bool GestorArchivos::guardarUsuarios(const vector<Usuario*>& usuarios) {
     return true;
 }
 
-
 // PERSISTENCIA MATERIAS
 bool GestorArchivos::cargarMaterias(vector<Materia>& materias) {
     ifstream archivo(resolverRuta(rutaMaterias));
@@ -131,7 +129,6 @@ bool GestorArchivos::guardarMaterias(const vector<Materia>& materias) {
     return true;
 }
 
-
 // PERSISTENCIA SOLICITUDES
 bool GestorArchivos::cargarSolicitudes(vector<Solicitud>& solicitudes) {
     ifstream archivo(resolverRuta(rutaSolicitudes));
@@ -146,7 +143,6 @@ bool GestorArchivos::cargarSolicitudes(vector<Solicitud>& solicitudes) {
     }
     return true;
 }
-
 
 bool GestorArchivos::guardarSolicitudes(const vector<Solicitud>& solicitudes) {
     ofstream archivo(resolverRuta(rutaSolicitudes));
