@@ -1,3 +1,4 @@
+//Usuario.cpp
 
 #include "../include/Usuario.h"
 
@@ -39,28 +40,7 @@ Monitor::Monitor(string nombres, string apellidos, string username, string passw
                  long codigoEstudiante, string carrera, int semestre,
                  long codigoMonitor, string horarioDisponibilidad)
     : Estudiante(nombres, apellidos, username, password, codigoEstudiante, carrera, semestre),
-      codigoMonitor(codigoMonitor), horarioDisponibilidad(horarioDisponibilidad) {
+      codigoMonitor(codigoMonitor), horarioDisponibilidad(horarioDisponibilidad),
+      solicitudActual(0) {          // NUEVO: al crearse, el monitor esta libre
     rol = "Monitor";
-}
-
-void asignarMateriaAMonitor(Monitor& mon, const string& codigoMateria, PilaAsignaciones& historial) {
-    Asignacion a;
-    a.monitor = &mon;
-    a.materiaAnterior = mon.getMateriaAsignada();
-    a.materiaNueva = codigoMateria;
-    historial.push(a);
-    mon.asignarMateria(codigoMateria);
-    cout << "Se asigno la materia " << codigoMateria << " a " << mon.getNombres() << "." << endl;
-}
-
-void deshacerAsignacion(PilaAsignaciones& historial) {
-    if (historial.isEmpty()) {
-        cout << "No hay asignaciones para deshacer." << endl;
-        return;
-    }
-    Asignacion ultima = historial.top();
-    historial.pop();
-    ultima.monitor->asignarMateria(ultima.materiaAnterior);
-    cout << "Se deshizo la asignacion de " << ultima.materiaNueva
-         << " a " << ultima.monitor->getNombres() << "." << endl;
 }

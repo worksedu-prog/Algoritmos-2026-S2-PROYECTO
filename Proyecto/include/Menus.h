@@ -7,6 +7,7 @@
 #include "Usuario.h"
 #include "Materia.h"
 #include "Solicitud.h"
+#include "Asignaciones.h" //PilaAsignaciones y Bitacora
 
 using namespace std;
 
@@ -17,7 +18,9 @@ void menuEstudiante(Estudiante& est, vector<Materia>& materias, vector<Solicitud
 void menuMonitor(Monitor& mon, vector<Solicitud>& solicitudes, ColaSolicitudes& cola);
 void menuProfesor(Profesor& prof, vector<Materia>& materias, vector<Solicitud>& solicitudes,
                   vector<Usuario*>& usuarios);
+//Ahora recibe tambien la cola y la bitacora
 void menuAdministrador(Administrador& admin, vector<Materia>& materias, vector<Solicitud>& solicitudes,
-                       vector<Usuario*>& usuarios, PilaAsignaciones& historial);
+                       vector<Usuario*>& usuarios, PilaAsignaciones& historial,
+                       ColaSolicitudes& cola, BitacoraAsignaciones& bitacora);
 
 #endif

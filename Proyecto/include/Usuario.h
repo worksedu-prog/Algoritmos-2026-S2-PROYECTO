@@ -63,6 +63,7 @@ private:
     long codigoMonitor;
     string horarioDisponibilidad;
     string materiaAsignada;   // codigo de la materia ("" si no tiene)
+    int solicitudActual;      // Id de la solicitud que tiene asignada (0 = franja libre)
 
 public:
     Monitor(string nombres, string apellidos, string username, string password,
@@ -73,7 +74,13 @@ public:
     long getCodigoMonitor() const { return codigoMonitor; }
     string getHorario() const { return horarioDisponibilidad; }
     string getMateriaAsignada() const { return materiaAsignada; }
+
+    // NUEVO: control de la franja del monitor
+    int getSolicitudActual() const { return solicitudActual; }
+    void setSolicitudActual(int id) { solicitudActual = id; }
+    bool estaLibre() const { return solicitudActual == 0; }
 };
+
 class Profesor : public Usuario {
 private:
     string departamento;
@@ -86,29 +93,5 @@ public:
     string getDepartamento() const;
     void setDepartamento(const string& departamento);
 };
-
-// Registro de un cambio de asignacion (Pila)
-struct Asignacion {
-    Monitor* monitor;
-    string materiaAnterior;
-    string materiaNueva;
-};
-
-// PILA propia (LIFO)
-class PilaAsignaciones {
-private:
-    vector<Asignacion> elementos;
-
-public:
-    void push(const Asignacion& a) { elementos.push_back(a); }
-    void pop() { if (!elementos.empty()) elementos.pop_back(); }
-    Asignacion top() const { return elementos.back(); }   // se llama solo si !isEmpty()
-    bool isEmpty() const { return elementos.empty(); }
-};
-
-// Asigna una materia a un monitor y apila el cambio
-void asignarMateriaAMonitor(Monitor& mon, const string& codigoMateria, PilaAsignaciones& historial);
-// Desapila la ultima asignacion y restaura la materia anterior del monitor
-void deshacerAsignacion(PilaAsignaciones& historial);
 
 #endif
