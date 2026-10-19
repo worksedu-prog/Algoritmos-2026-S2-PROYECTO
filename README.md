@@ -414,55 +414,6 @@ Las búsquedas y ordenamientos **cuentan sus comparaciones** y las muestran en p
 | Encolar / desencolar | Cola de solicitudes | O(q) · `frente` O(1) | Implementada sobre vector |
 | `push` / `pop` | Pila de asignaciones | O(1) | |
 
-Medido con los algoritmos reales sobre 1000 materias desordenadas: inserción **245,345** comparaciones, merge sort **8,714** y quick sort **12,106**. Buscando la última de 1000 materias: **1000** comparaciones la secuencial contra **10** la binaria.
-
-### Tabla de complejidad por método
-
-Detalle de cada método del proyecto. Se puede abrir y filtrar en Excel: [`Tabla_de_complejidad_proyecto.xlsx`](Documentacion/Tabla_de_complejidad_proyecto.xlsx).
-
-| Módulo | Método | Qué hace | Big O | Por qué |
-|---|---|---|---|---|
-| Materia (horario) | `franjaOcupada(dia, franja)` | Dice si una franja de 30 min está ocupada | **O(1)** | Accede directo a horario[dia][franja]: el índice calcula la posición en memoria, sin recorrer la matriz |
-|  | `ocuparFranja(dia, franja)` | Marca una franja como ocupada | **O(1)** | Escribe true en horario[dia][franja], una sola asignación |
-|  | `bloquesDeHorario(m)` | Une franjas consecutivas en bloques (ej. Martes 10:00-12:00) | **O(D · F)** | Recorre la matriz completa: D días por F franjas (6 × 28, constantes). No depende del número de materias |
-|  | `mostrarMatrizHorario(m)` | Dibuja la cuadrícula día × franja | **O(D · F)** | Visita cada celda una vez |
-|  | `horarioATexto(m) / textoAHorario(t, m)` | Convierte el horario a texto para guardarlo y de texto a horario al cargar | **O(D · F) / O(L)** | Guardar recorre la matriz; cargar recorre los L caracteres del texto y ocupa cada franja una vez |
-| ColaSolicitudes | `encolar(id, urgencia)` | Inserta la solicitud en su lugar: mayor urgencia primero y, a igual urgencia, la más antigua | **O(q)** | Avanza hasta encontrar la posición (hasta q pasos) y insert desplaza los elementos de la derecha |
-|  | `frente()` | Devuelve el id de la solicitud que sigue | **O(1)** | Lee la primera posición del vector |
-|  | `desencolar()` | Saca la solicitud del frente | **O(q)** | erase en la posición 0 desplaza los q-1 elementos restantes. Con una lista enlazada sería O(1) |
-|  | `eliminar(id)` | Saca una solicitud de cualquier posición (cancelar) | **O(q)** | Busca el id recorriendo la cola y luego desplaza los elementos |
-|  | `estaVacia() / tamano()` | Informa si la cola está vacía y cuántas solicitudes tiene | **O(1)** | Solo consulta el tamaño del vector |
-| PilaAsignaciones | `push(a)` | Apila una asignación (materia o solicitud) | **O(1) amortizado** | Escribe al final; solo copia todo cuando el vector interno se llena |
-|  | `pop()` | Desapila la última asignación | **O(1)** | Quita el último elemento sin desplazar nada |
-|  | `top() / isEmpty()` | Consulta la cima y si la pila está vacía | **O(1)** | Acceso directo al último elemento |
-| BitacoraAsignaciones | `registrar(texto)` | Agrega una línea de registro | **O(1) amortizado** | Escribe al final del vector |
-|  | `mostrar()` | Imprime todos los registros en orden | **O(r)** | Visita cada uno de los r registros una vez |
-| Asignaciones | `asignarMateriaAMonitor()` | Asigna una materia a un monitor y la registra | **O(1) amortizado** | Cambia un campo del monitor, apila (push) y registra en la bitácora. Las búsquedas de monitor y materia se hacen antes, en el menú |
-|  | `asignarSolicitudAMonitor()` | Asigna una solicitud pendiente a un monitor libre | **O(s + q)** | buscarSolicitudSecuencial recorre las s solicitudes y sacar la solicitud de la cola cuesta O(q) |
-|  | `deshacerAsignacion()` | Revierte la última asignación con la pila | **O(s + q)** | pop es O(1), pero localizar la solicitud es O(s) y reencolarla es O(q) |
-| Búsqueda | `buscarMateriaSecuencial(cod)` | Busca una materia recorriendo el vector | **O(n)** | Peor caso: revisa las n materias. Mejor caso O(1) si está de primera |
-|  | `buscarMateriaBinaria(cod)` | Busca una materia partiendo el vector por la mitad | **O(log n)** | Cada comparación descarta la mitad. Exige el vector ordenado por código |
-|  | `buscarSolicitudSecuencial(id)` | Busca una solicitud por id | **O(s)** | Recorre las s solicitudes. Es el punto donde una tabla hash lo dejaría en O(1) |
-| Ordenamiento de materias | `ordenarInsercion(criterio)` | Ordena por código, nombre o créditos (básico) | **O(n²) peor, O(n) si casi ordenado** | El ciclo interno corta al encontrar el sitio. En el caso ordenado hace n-1 comparaciones |
-|  | `ordenarMergeSort(criterio)` | Ordena dividiendo y mezclando (recursivo) | **O(n log n)** | log n niveles de partición y n de trabajo por nivel, en todos los casos. Usa memoria extra O(n) al mezclar |
-|  | `ordenarQuickSort(criterio)` | Ordena con partición alrededor de un pivote (recursivo) | **O(n log n) promedio, O(n²) peor** | El pivote central evita el peor caso con datos ya ordenados. Ordena en el mismo vector, con pila de recursión O(log n) |
-| Ordenamiento de solicitudes | `ordenarSolicitudes(criterio)` | Ordena por urgencia, antigüedad o materia (merge sort recursivo) | **O(s log s)** | Mismo análisis del merge sort, con s solicitudes. El criterio solo cambia la comparación |
-| Recursión | `mostrarPrerrequisitos(cod)` | Muestra la cadena de prerrequisitos con sangría | **O(k · log m)** | Visita k prerrequisitos (directos e indirectos) y en cada visita hace una búsqueda binaria sobre m materias. La profundidad se limita a m niveles |
-| Código de materia | `generarCodigoMateria(nombre)` | Crea un código único (3 letras + consecutivo) | **O(log m) típico** | Una búsqueda binaria confirma que no existe; solo repite si hay colisión |
-| Persistencia (GestorArchivos) | `cargarUsuarios() / guardarUsuarios()` | Lee y escribe usuarios.txt | **O(u)** | Procesa cada línea una vez |
-|  | `cargarMaterias() / guardarMaterias()` | Lee y escribe materias.txt, con prerrequisitos y horario | **O(m)** | Una pasada por las materias; el horario por materia es de tamaño fijo |
-|  | `cargarSolicitudes() / guardarSolicitudes()` | Lee y escribe solicitudes.txt | **O(s)** | Una pasada por las solicitudes. Al cargar, la cola se reconstruye con las pendientes |
-| Reportes y listados | `listarMaterias(criterio, algoritmo)` | Copia el vector y lo ordena con el algoritmo elegido | **O(n) + costo del orden** | La copia cuesta n; luego se aplica inserción, merge o quick. El original no se toca |
-|  | `listarSolicitudesOrdenadas(criterio)` | Muestra las solicitudes ordenadas | **O(s log s)** | Copia O(s) y merge sort |
-|  | `historial del estudiante` | Lista las solicitudes de un estudiante | **O(s)** | Filtra por código recorriendo todas las solicitudes |
-|  | `autenticarUsuario(user, clave)` | Busca al usuario para iniciar sesión | **O(u)** | Recorre el vector de usuarios hasta encontrar el nombre |
-
-**Variables:** `n` = número de materias · `s` = número de solicitudes · `q` = solicitudes en la cola · `u` = número de usuarios · `m` = materias en el catálogo · `r` = registros de la bitácora · `k` = prerrequisitos visitados · `D, F` = días (6) y franjas (28) del horario · `L` = largo del texto del horario.
-
-Los listados admiten **tres criterios** (código, nombre o créditos) y siempre ordenan una **copia**, para no romper el orden por código que necesita la búsqueda binaria.
-
-Detalles que cuidan la robustez: la generación de códigos (3 letras del nombre + consecutivo, p. ej. `CAL106`) verifica unicidad con búsqueda binaria; la recursión de prerrequisitos tiene un tope de profundidad para no ciclarse si los datos tuvieran una dependencia circular; la lectura de horarios descarta bloques inválidos; y la lectura de menús valida entradas no numéricas.
-
 ---
 
 ## Formato de los datos
