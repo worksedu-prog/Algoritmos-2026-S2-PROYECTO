@@ -1,0 +1,79 @@
+
+name: CI y auditoria
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      estricto:
+        description: "Tratar los pendientes (⚠️) de la auditoria como fallo"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cpp:
+    name: C++ (${{ matrix.nombre }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - nombre: asan-ubsan
+            flags: "-O1 -g -fno-omit-frame-pointer -fsanitize=address,undefined"
+          - nombre: release
+            flags: "-O2"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Version del compilador
+        run: g++ --version | head -1
+
+      - name: Compilar
+        run: |
+          mkdir -p build
+          g++ -std=c++17 -Wall -Wextra ${{ matrix.flags }} -IProyecto/include Proyecto/src/*.cpp -o build/Software 2> build/compilacion.log || { cat build/compilacion.log; exit 1; }
+          echo "Advertencias: $(grep -c 'warning:' build/compilacion.log || true)"
+
+      - name: Pruebas automaticas
+        run: ./scripts/run_tests.sh "$GITHUB_WORKSPACE/build/Software"
+
+      - name: Subir resultados
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pruebas-cpp-${{ matrix.nombre }}
+          path: |
+            resultados/
+            build/compilacion.log
+          if-no-files-found: ignore
+
+  auditoria:
+    name: Auditoria del repositorio
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # historial completo: necesario para contar commits por integrante
+
+      - name: Auditar
+        env:
+          STRICT: ${{ inputs.estricto && '1' || '0' }}
+        run: ./scripts/auditoria.sh
+
+      - name: Subir reporte
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reporte-auditoria
+          path: auditoria/reporte.md
+          if-no-files-found: ignore
