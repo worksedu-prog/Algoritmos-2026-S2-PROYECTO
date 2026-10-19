@@ -45,4 +45,13 @@ void mostrarPrerrequisitos(const vector<Materia>& materias, const string& codigo
 // Genera un codigo nuevo y unico
 string generarCodigoMateria(const string& nombre, const vector<Materia>& materias);
 
+//Horario de materias
+string nombreDia(int dia);                                  // 0 = Lunes ... 5 = Sabado
+string formatoHora(int franja);                             // 6 -> "9:00 AM"
+vector<BloqueHorario> bloquesDeHorario(const Materia& m);   // une franjas consecutivas
+string horarioATexto(const Materia& m);                     // para guardar: "3@6-11|0@2-4"
+void textoAHorario(const string& texto, Materia& m);        // inverso: llena el horario
+void mostrarMatrizHorario(const Materia& m);               // cuadricula dias x franjas
+void mostrarHorarioMateria(const vector<Materia>& materias, const string& codigo);  // "Jueves, 9:00 AM - 11:30 AM"
+
 #endif

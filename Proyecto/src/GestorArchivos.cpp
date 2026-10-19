@@ -1,5 +1,6 @@
 //GestorArchivos.cpp
 #include "../include/GestorArchivos.h"
+#include "../include/Algoritmos.h"
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -75,7 +76,7 @@ bool GestorArchivos::cargarUsuarios(vector<Usuario*>& usuarios) {
             u->setActivo(activo);
             usuarios.push_back(u);
         }
-    }
+    } 
     return true;
 }
 bool GestorArchivos::guardarUsuarios(const vector<Usuario*>& usuarios) {
@@ -113,7 +114,10 @@ bool GestorArchivos::cargarMaterias(vector<Materia>& materias) {
         if (p.size() < 4) continue;
         vector<string> previos;
         if (p.size() >= 5 && !p[4].empty()) previos = separar(p[4], ';');
-        materias.push_back(Materia(p[0], p[1], aInt(p[2]), p[3], previos));
+        // Sexta columna: horario como "dia@inicio-fin|...";
+        Materia m(p[0], p[1], aInt(p[2]), p[3], previos);
+        if (p.size() >= 6) textoAHorario(p[5], m);
+        materias.push_back(m);
     }
     return true;
 }
@@ -124,7 +128,7 @@ bool GestorArchivos::guardarMaterias(const vector<Materia>& materias) {
         archivo << m.getCodigo() << "," << m.getNombre() << "," << m.getCreditos() << "," << m.getTipo() << ",";
         const vector<string>& previos = m.getPrerrequisitos();
         for (int i = 0; i < previos.size(); i++) archivo << (i > 0 ? ";" : "") << previos[i];
-        archivo << "\n";
+        archivo << "," << horarioATexto(m) << "\n";
     }
     return true;
 }
