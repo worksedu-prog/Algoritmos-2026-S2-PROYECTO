@@ -2,6 +2,8 @@
 #include "../include/Algoritmos.h"
 #include <algorithm>
 #include <cctype>
+#include <cstdio>
+#include <iomanip>
 
 // Dice si 'a' va antes que 'b' segun el criterio (si empatan, desempata por codigo)
 static bool menorQue(const Materia& a, const Materia& b, int criterio, long& comparaciones) {
@@ -126,6 +128,102 @@ void mostrarPrerrequisitos(const vector<Materia>& materias, const string& codigo
         string nombre = (posPrevio == -1) ? "(no existe)" : materias[posPrevio].getNombre();
         cout << string((nivel + 1) * 2, ' ') << "- " << previos[i] << " " << nombre << endl;
         mostrarPrerrequisitos(materias, previos[i], nivel + 1);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// HORARIO DE MATERIAS
+// El horario es una matriz dias x franjas (cada dia = un entero con un bit por franja).
+// ---------------------------------------------------------------------------
+string nombreDia(int dia) {
+    string dias[DIAS_SEMANA] = {"Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado"};
+    return (dia >= 0 && dia < DIAS_SEMANA) ? dias[dia] : "?";
+}
+
+// Convierte el numero de franja en hora legible
+//donde la franja FRANJAS_DIA es el cierre (8:00 PM)
+string formatoHora(int franja) {
+    int minutos = HORA_INICIO_DIA * 60 + franja * 30;
+    int horas = minutos / 60, minutosBloque = minutos % 60;
+    string sufijo = (horas >= 12) ? "PM" : "AM";
+    int h12 = (horas % 12 == 0) ? 12 : horas % 12; //Pasa a formato 12 horas
+    return to_string(h12) + ":" + (minutosBloque < 10 ? "0" : "") + to_string(minutosBloque) + " " + sufijo;
+}
+
+// Recorre la matriz dia por dia y une las franjas ocupadas consecutivas en bloques
+vector<BloqueHorario> bloquesDeHorario(const Materia& m) {
+    vector<BloqueHorario> bloques;
+    for (int dia = 0; dia < DIAS_SEMANA; dia++) {
+        int franja = 0;
+        while (franja < FRANJAS_DIA) {
+            if (m.franjaOcupada(dia, franja)) {
+                int inicio = franja;
+                while (franja < FRANJAS_DIA && m.franjaOcupada(dia, franja)) franja++;
+                bloques.push_back(BloqueHorario{dia, inicio, franja});
+            } else {
+                franja++;
+            }
+        }
+    }
+    return bloques;
+}
+
+// Formato de archivo: bloques separados por '|', cada uno "dia@inicio-fin" (vacio = sin horario)
+string horarioATexto(const Materia& m) {
+    string texto;
+    vector<BloqueHorario> bloques = bloquesDeHorario(m);
+    for (size_t i = 0; i < bloques.size(); i++) {
+        if (i > 0) texto += "|";
+        texto += to_string(bloques[i].dia) + "@" + to_string(bloques[i].inicio) + "-" + to_string(bloques[i].fin);
+    }
+    return texto;
+}
+
+// Lee el formato anterior y marca las franjas en m
+void textoAHorario(const string& texto, Materia& m) {
+    size_t inicio = 0;
+    while (inicio <= texto.size() && !texto.empty()) {
+        size_t fin = texto.find('|', inicio);
+        string bloque = texto.substr(inicio, fin == string::npos ? string::npos : fin - inicio);
+        int dia, ini, fn;
+        if (sscanf(bloque.c_str(), "%d@%d-%d", &dia, &ini, &fn) == 3 && dia >= 0 && dia < DIAS_SEMANA && ini >= 0 && fn <= FRANJAS_DIA && ini < fn) {
+            for (int f = ini; f < fn; f++) m.ocuparFranja(dia, f);
+        }
+        if (fin == string::npos) break;
+        inicio = fin + 1;
+    }
+}
+
+// Cuadricula de dias (columnas) por franjas (filas);
+//[X] = ocupada. Solo muestra el rango de horas usado.
+void mostrarMatrizHorario(const Materia& m) {
+    int primera = FRANJAS_DIA, ultima = -1;
+    for (int d = 0; d < DIAS_SEMANA; d++)
+        for (int f = 0; f < FRANJAS_DIA; f++)
+            if (m.franjaOcupada(d, f)) { primera = min(primera, f); ultima = max(ultima, f); }
+    if (ultima == -1) { cout << "  (sin horario asignado)" << endl; return; }
+
+    cout << "  " << left << setw(10) << "Hora";
+    for (int d = 0; d < DIAS_SEMANA; d++) cout << setw(11) << nombreDia(d);
+    cout << endl;
+    for (int f = primera; f <= ultima; f++) {
+        cout << "  " << left << setw(10) << formatoHora(f);
+        for (int d = 0; d < DIAS_SEMANA; d++) cout << setw(11) << (m.franjaOcupada(d, f) ? "[X]" : ".");
+        cout << endl;
+    }
+}
+
+// Lista los bloques de una materia, 
+//ejemplo: "Jueves, 9:00 AM - 11:30 AM"
+void mostrarHorarioMateria(const vector<Materia>& materias, const string& codigo) {
+    long ignorar = 0;
+    int pos = buscarMateriaBinaria(materias, codigo, ignorar);
+    if (pos == -1) { cout << "La materia no existe." << endl; return; }
+    vector<BloqueHorario> bloques = bloquesDeHorario(materias[pos]);
+    if (bloques.empty()) { cout << "  Sin horario asignado." << endl; return; }
+    for (size_t i = 0; i < bloques.size(); i++) {
+        cout << "  " << nombreDia(bloques[i].dia) << ", " << formatoHora(bloques[i].inicio)
+             << " - " << formatoHora(bloques[i].fin) << endl;
     }
 }
 
