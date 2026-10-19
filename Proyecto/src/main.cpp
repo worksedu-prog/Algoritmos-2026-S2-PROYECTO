@@ -1,9 +1,11 @@
+//Main.cpp
 #include <iostream>
 #include <string>
 #include <vector>
 #include "../include/Usuario.h"
 #include "../include/Materia.h"
 #include "../include/Solicitud.h"
+#include "../include/Asignaciones.h"
 #include "../include/GestorArchivos.h"
 #include "../include/Grafo.h"
 #include "../include/Algoritmos.h"
@@ -17,6 +19,7 @@ int main() {
     GestorArchivos gestorArchivos;
     ColaSolicitudes cola;
     PilaAsignaciones historialAsignaciones;
+    BitacoraAsignaciones bitacora;               // NUEVO: registro de asignaciones y reversiones
 
     // Vectores dinámicos en memoria
     vector<Usuario*> usuarios;
@@ -37,9 +40,12 @@ int main() {
     // Las materias se mantienen ordenadas por codigo (necesario para la busqueda binaria)
     ordenarMergeSort(materias, POR_CODIGO);
 
-    // Se reconstruye la cola FIFO con las solicitudes que siguen pendientes
-  for (int i = 0; i < solicitudes.size(); i++) {
+    // Se reconstruye la cola con prioridad con las solicitudes que siguen pendientes
+    for (int i = 0; i < solicitudes.size(); i++) {
         if (solicitudes[i].getId() > contadorSolicitudes) contadorSolicitudes = solicitudes[i].getId();
+        // NUEVO: las asignaciones activas no se guardan (igual que la pila), asi que una
+        // solicitud que quedo "Asignada" al cerrar vuelve a "Pendiente" para no perderse
+        if (solicitudes[i].getEstado() == "Asignada") solicitudes[i].setEstado("Pendiente");
         if (solicitudes[i].getEstado() == "Pendiente") {
             cola.encolar(solicitudes[i].getId(), solicitudes[i].getUrgencia());
         }
@@ -81,8 +87,9 @@ int main() {
                 encontrado->informacion();
                 string rol = encontrado->getRol();
                 if (rol == "Administrador") {
+                    // CAMBIO: se pasan tambien la cola y la bitacora
                     menuAdministrador(*static_cast<Administrador*>(encontrado), materias, solicitudes,
-                                      usuarios, historialAsignaciones);
+                                      usuarios, historialAsignaciones, cola, bitacora);
                 } else if (rol == "Estudiante") {
                     menuEstudiante(*static_cast<Estudiante*>(encontrado), materias, solicitudes,
                                    cola, contadorSolicitudes);
@@ -96,7 +103,6 @@ int main() {
             cout << "Opcion invalida." << endl;
         }
     }
-
 
     //Al cerrar el programa, guardar cambios en los .txt
     gestorArchivos.guardarUsuarios(usuarios);

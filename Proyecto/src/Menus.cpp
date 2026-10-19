@@ -1,3 +1,4 @@
+//Menus.cpp
 #include "../include/Menus.h"
 #include "../include/Algoritmos.h"
 #include <iostream>
@@ -112,6 +113,22 @@ static void pedirHorario(Materia& m) {
     }
 }
 
+// NUEVO: muestra las solicitudes ordenadas por urgencia, antiguedad o materia.
+// Ordena una COPIA: el vector original (orden de llegada) no se altera.
+static void listarSolicitudesOrdenadas(const vector<Solicitud>& solicitudes) {
+    if (solicitudes.empty()) {
+        cout << "No hay solicitudes registradas." << endl;
+        return;
+    }
+    int criterio = leerRango("Ordenar por (1 = urgencia, 2 = antiguedad, 3 = materia): ", 1, 3);
+
+    vector<Solicitud> copia = solicitudes;
+    long comparaciones = ordenarSolicitudes(copia, criterio);
+
+    for (int i = 0; i < copia.size(); i++) copia[i].mostrarInfo();
+    cout << "(merge sort: " << comparaciones << " comparaciones)" << endl;
+}
+
 // Pide un codigo y muestra su cadena de prerrequisitos (recursivo)
 static void verPrerrequisitos(const vector<Materia>& materias) {
     string codigo;
@@ -199,7 +216,6 @@ static void registrarUsuario(vector<Usuario*>& usuarios) {
     cout << "." << endl;
 }
 
-
 void menuPruebas() {
     cout << "-------------------------------------" << endl;
     cout << " SISTEMA DE ACOMPAÑAMIENTO ACADEMICO " << endl;
@@ -251,7 +267,6 @@ void menuEstudiante(Estudiante& est, vector<Materia>& materias, vector<Solicitud
             //AGREGADO TEMPORALMENTE PARA PRUEBAS!!!!!!!
             int urgencia = leerRango("Urgencia (1 = baja, 2 = media, 3 = alta): ", 1, 3);
 
-
             cout << "Describe en que necesitas ayuda: ";
             cin >> ws;
             getline(cin, descripcion);
@@ -301,6 +316,8 @@ void menuMonitor(Monitor& mon, vector<Solicitud>& solicitudes, ColaSolicitudes& 
         cout << "1. Ver todas las solicitudes" << endl;
         cout << "2. Ver cola de pendientes (en orden de atencion)" << endl;
         cout << "3. Atender siguiente solicitud" << endl;
+        cout << "4. Terminar mi solicitud asignada" << endl;          // NUEVO
+        cout << "5. Ver solicitudes ordenadas" << endl;               // NUEVO
         cout << "0. Cerrar sesion" << endl;
         opcion = leerOpcion();
 
@@ -328,6 +345,23 @@ void menuMonitor(Monitor& mon, vector<Solicitud>& solicitudes, ColaSolicitudes& 
                 cout << "Solicitud atendida:" << endl;
                 solicitudes[pos].mostrarInfo();
             }
+
+        } else if (opcion == 4) {
+            // NUEVO: el monitor termina la solicitud que le asigno el administrador
+            int id = mon.getSolicitudActual();
+            int pos = (id == 0) ? -1 : buscarSolicitudSecuencial(solicitudes, id);
+            if (pos == -1) {
+                cout << "No tienes ninguna solicitud asignada." << endl;
+            } else {
+                solicitudes[pos].setEstado("Atendida");
+                mon.setSolicitudActual(0);          // la franja queda libre
+                cout << "Solicitud atendida:" << endl;
+                solicitudes[pos].mostrarInfo();
+            }
+
+        } else if (opcion == 5) {
+            // NUEVO: ordenar solicitudes por urgencia, antiguedad o materia
+            listarSolicitudesOrdenadas(solicitudes);
 
         } else if (opcion != 0) {
             cout << "Opcion invalida." << endl;
@@ -391,7 +425,10 @@ void menuProfesor(Profesor& prof, vector<Materia>& materias, vector<Solicitud>& 
     }
 }
 
-void menuAdministrador(Administrador& admin, vector<Materia>& materias, vector<Solicitud>& solicitudes, vector<Usuario*>& usuarios, PilaAsignaciones& historial) {
+// CAMBIO: recibe tambien la cola y la bitacora
+void menuAdministrador(Administrador& admin, vector<Materia>& materias, vector<Solicitud>& solicitudes,
+                       vector<Usuario*>& usuarios, PilaAsignaciones& historial,
+                       ColaSolicitudes& cola, BitacoraAsignaciones& bitacora) {
     int opcion = -1;
     while (opcion != 0) {
         cout << "\n--- MENU ADMINISTRADOR (" << admin.getNombres() << ") ---" << endl;
@@ -403,6 +440,9 @@ void menuAdministrador(Administrador& admin, vector<Materia>& materias, vector<S
         cout << "6. Asignar materia a un monitor" << endl;
         cout << "7. Deshacer ultima asignacion" << endl;
         cout << "8. Registrar nuevo usuario" << endl;
+        cout << "9. Asignar solicitud pendiente a un monitor" << endl;     // NUEVO
+        cout << "10. Ver bitacora de asignaciones" << endl;                // NUEVO
+        cout << "11. Ver solicitudes ordenadas" << endl;                    // NUEVO
         cout << "12. Ver horario de una materia" << endl;
         cout << "0. Cerrar sesion" << endl;
         opcion = leerOpcion();
@@ -487,14 +527,43 @@ void menuAdministrador(Administrador& admin, vector<Materia>& materias, vector<S
                 cout << "La materia no existe." << endl;
                 continue;
             }
-            asignarMateriaAMonitor(*mon, codigo, historial);
+            // CAMBIO: ahora tambien recibe la bitacora
+            asignarMateriaAMonitor(*mon, codigo, historial, bitacora);
 
         } else if (opcion == 7) {
-            deshacerAsignacion(historial);
-        
+            // CAMBIO: ahora recibe solicitudes, cola y bitacora para poder revertir solicitudes
+            deshacerAsignacion(historial, solicitudes, cola, bitacora);
 
         } else if (opcion == 8) {
             registrarUsuario(usuarios);
+
+        } else if (opcion == 9) {
+            // NUEVO: asignar una solicitud pendiente a un monitor
+            string username;
+            cout << "Username del monitor: ";
+            cin >> username;
+            Monitor* mon = nullptr;
+            for (Usuario* u : usuarios) {
+                if (u->getRol() == "Monitor" && u->getUsername() == username) {
+                    mon = dynamic_cast<Monitor*>(u);
+                    break;
+                }
+            }
+            if (!mon) {
+                cout << "Monitor no encontrado." << endl;
+                continue;
+            }
+            int id = leerRango("Id de la solicitud pendiente: ", 1, numeric_limits<int>::max());
+            asignarSolicitudAMonitor(*mon, id, solicitudes, cola, historial, bitacora);
+
+        } else if (opcion == 10) {
+            // NUEVO: ver el registro de asignaciones y reversiones
+            bitacora.mostrar();
+
+        } else if (opcion == 11) {
+            // NUEVO: ordenar solicitudes por urgencia, antiguedad o materia
+            listarSolicitudesOrdenadas(solicitudes);
+
         } else if (opcion == 12) {
             verHorarioMateria(materias);
         } else if (opcion != 0) {
