@@ -403,7 +403,7 @@ void menuAdministrador(Administrador& admin, vector<Materia>& materias, vector<S
         cout << "6. Asignar materia a un monitor" << endl;
         cout << "7. Deshacer ultima asignacion" << endl;
         cout << "8. Registrar nuevo usuario" << endl;
-        cout << "9. Ver horario de una materia" << endl;
+        cout << "12. Ver horario de una materia" << endl;
         cout << "0. Cerrar sesion" << endl;
         opcion = leerOpcion();
 
@@ -495,7 +495,7 @@ void menuAdministrador(Administrador& admin, vector<Materia>& materias, vector<S
 
         } else if (opcion == 8) {
             registrarUsuario(usuarios);
-        } else if (opcion == 9) {
+        } else if (opcion == 12) {
             verHorarioMateria(materias);
         } else if (opcion != 0) {
             cout << "Opcion invalida." << endl;
