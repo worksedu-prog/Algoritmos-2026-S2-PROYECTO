@@ -3,6 +3,7 @@
 #include "../include/Algoritmos.h"
 #include <iostream>
 #include <algorithm>
+#include <limits>
 
 using namespace std;
 // Lee un entero entre minimo y maximo; repite si la entrada no es valida. En fin de entrada devuelve minimo.

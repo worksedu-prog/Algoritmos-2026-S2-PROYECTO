@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <limits>
 #include "../include/Usuario.h"
 #include "../include/Materia.h"
 #include "../include/Solicitud.h"
@@ -10,6 +11,7 @@
 #include "../include/Grafo.h"
 #include "../include/Algoritmos.h"
 #include "../include/Menus.h"
+
 
 using namespace std;
 
