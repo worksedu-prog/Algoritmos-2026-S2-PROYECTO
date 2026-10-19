@@ -3,7 +3,7 @@
 // Lee y guarda usuarios, materias y solicitudes en archivos de texto.
 // Formatos (separados por coma):
 //   usuarios.txt    Rol,Nombres,Apellidos,Usuario,Clave,Activo(1/0)
-//   materias.txt    Codigo,Nombre,Creditos,Tipo,Prerrequisitos(separados por ';')
+//   materias.txt    Codigo,Nombre,Creditos,Tipo,Prerrequisitos y horario
 //   solicitudes.txt Id,CodigoEstudiante,CodigoMateria,Urgencia(1-3),Estado,Descripcion
 #ifndef GESTORARCHIVOS_H
 #define GESTORARCHIVOS_H

@@ -1,6 +1,7 @@
-FIS105,Fisica diferencial,3,Obligatoria,FIS201
-FIS201,Fisica Mecanica,3,Obligatoria,MAT101
-HUM301,Etica y Sociedad,2,Electiva,
-MAT101,Calculo Diferencial,4,Obligatoria,
-PROG102,Programacion Orientada a Objetos,3,Obligatoria,
-PROG201,Estructuras de Datos,3,Obligatoria,PROG102
+CAL106,Calculo 1,2,Obligatoria,FIS105;HUM301,
+FIS105,Fisica diferencial,3,Obligatoria,FIS201,1@8-12|4@4-8
+FIS201,Fisica Mecanica,3,Obligatoria,MAT101,
+HUM301,Etica y Sociedad,2,Electiva,,
+MAT101,Calculo Diferencial,4,Obligatoria,,0@2-6|2@2-6
+PROG102,Programacion Orientada a Objetos,3,Obligatoria,,1@4-10
+PROG201,Estructuras de Datos,3,Obligatoria,PROG102,3@8-14
