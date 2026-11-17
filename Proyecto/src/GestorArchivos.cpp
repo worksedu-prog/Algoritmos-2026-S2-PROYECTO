@@ -4,6 +4,7 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <cstdio>
 
 using namespace std;
 
@@ -34,6 +35,27 @@ static vector<string> separar(const string& linea, char delim, int maxPartes = 0
 
 static long aLong(const string& s) { try { return stol(s); } catch (...) { return 0; } }
 static int aInt(const string& s) { try { return stoi(s); } catch (...) { return 0; } }
+
+// Convierte las franjas de un monitor en texto: "dia@inicio-fin|dia@inicio-fin"
+static string franjasATexto(const Monitor& m) {
+    string texto;
+    const vector<BloqueHorario>& f = m.getDisponibilidad();
+    for (size_t i = 0; i < f.size(); i++) { 
+        if (i > 0) texto += "|";
+        texto += to_string(f[i].dia) + "@" + to_string(f[i].inicio) + "-" + to_string(f[i].fin);
+    }
+    return texto;
+}
+
+// Lee el texto anterior y agrega las franjas validas al monitor (las invalidas se ignoran)
+static void textoAFranjas(const string& texto, Monitor& m) {   // Carga las franjas guardadas)
+    if (texto.empty()) return;   // Sin franjas, no hace nada
+    vector<string> bloques = separar(texto, '|');   // Separa cada franja
+    for (size_t i = 0; i < bloques.size(); i++) {   // Recorre las franjas
+        int dia, ini, fn;
+        if (sscanf(bloques[i].c_str(), "%d@%d-%d", &dia, &ini, &fn) == 3) m.agregarFranja(dia, ini, fn);   // Agrega la franja, agregarFranja descarta las invalidas o cruzadas
+    }
+}
 
 GestorArchivos::GestorArchivos(const string& u, const string& m, const string& s)
     : rutaUsuarios(u), rutaMaterias(m), rutaSolicitudes(s) {}
@@ -69,7 +91,13 @@ bool GestorArchivos::cargarUsuarios(vector<Usuario*>& usuarios) {
             u = new Profesor(p[1], p[2], p[3], p[4], p[6]);
         } else if (p[0] == "Monitor" && p.size() >= 11) {
             Monitor* m = new Monitor(p[1], p[2], p[3], p[4], aLong(p[6]), p[7], aInt(p[8]), aLong(p[9]), p[10]);
-            if (p.size() > 11) m->asignarMateria(p[11]);
+            for (size_t col = 11; col <= 12 && col < p.size(); col++) {
+                vector<string> lista = separar(p[col], ';');
+                for (size_t k = 0; k < lista.size(); k++) {
+                    if (!lista[k].empty()) m->agregarMateria(lista[k]);
+                }
+            }
+            if (p.size() > 13) textoAFranjas(p[13], *m);
             u = m;
         }
         if (u) {
@@ -88,7 +116,12 @@ bool GestorArchivos::guardarUsuarios(const vector<Usuario*>& usuarios) {
                 << u->getUsername() << "," << u->getPassword() << "," << (u->isActivo() ? 1 : 0);
         if (const Monitor* m = dynamic_cast<const Monitor*>(u)) {          // Monitor antes que Estudiante
             archivo << "," << m->getCodigoEstudiante() << "," << m->getCarrera() << "," << m->getSemestre()
-                    << "," << m->getCodigoMonitor() << "," << m->getHorario() << "," << m->getMateriaAsignada();
+                    << "," << m->getCodigoMonitor() << "," << m->getHorario();
+            archivo << ",";
+            const vector<string>& lista = m->getMaterias();
+            for (size_t k = 0; k < lista.size(); k++) archivo << (k > 0 ? ";" : "") << lista[k];
+            archivo << ",";
+            archivo << "," << franjasATexto(*m);
         } else if (const Estudiante* e = dynamic_cast<const Estudiante*>(u)) {
             archivo << "," << e->getCodigoEstudiante() << "," << e->getCarrera() << "," << e->getSemestre();
         } else if (const Profesor* pr = dynamic_cast<const Profesor*>(u)) {
@@ -154,6 +187,42 @@ bool GestorArchivos::guardarSolicitudes(const vector<Solicitud>& solicitudes) {
     for (const Solicitud& s : solicitudes) {
         archivo << s.getId() << "," << s.getCodigoEstudiante() << "," << s.getCodigoMateria() << ","
                 << s.getUrgencia() << "," << s.getEstado() << "," << s.getDescripcion() << "\n";
+    }
+    return true;
+}
+
+// PERSISTENCIA BITACORA
+bool GestorArchivos::cargarBitacora(BitacoraAsignaciones& bitacora) {
+    ifstream archivo(resolverRuta(rutaBitacora));
+    if (!archivo.is_open()) return false;
+
+    string linea;
+    while (getline(archivo, linea)) {
+        linea = trim(linea);
+        if (linea.empty() || linea[0] == '#') continue;
+        bitacora.registrar(linea);
+    }
+    return true;
+}
+
+bool GestorArchivos::guardarBitacora(const BitacoraAsignaciones& bitacora) {
+    string ruta = resolverRuta(rutaBitacora);
+    {
+        ifstream existe(ruta);
+        if (!existe.is_open()) {
+            string rutaBase = resolverRuta(rutaUsuarios);
+            size_t barra = rutaBase.find_last_of("/\\");
+            string carpeta = (barra == string::npos) ? "" : rutaBase.substr(0, barra + 1);
+            ruta = carpeta + "bitacora.txt";
+        }
+    }
+
+    ofstream archivo(ruta);
+    if (!archivo.is_open()) return false;
+
+    const vector<string>& registros = bitacora.getRegistros();
+    for (size_t i = 0; i < registros.size(); i++) {
+        archivo << registros[i] << "\n";
     }
     return true;
 }
