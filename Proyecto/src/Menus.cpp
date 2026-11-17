@@ -157,8 +157,110 @@ static string leerTexto(const string& pregunta) {
     }
 }
 
+// Pide un username y devuelve el monitor correspondiente, o nullptr si no existe
+static Monitor* buscarMonitorPorUsername(vector<Usuario*>& usuarios) {   // Evita repetir la busqueda del monitor en las opciones 13 y 14
+    string username;
+    cout << "Username del monitor: ";   // Pide el username)
+    cin >> username;
+    for (Usuario* u : usuarios) {   //Recorre los usuarios
+        if (u->getRol() == "Monitor" && u->getUsername() == username) return dynamic_cast<Monitor*>(u);   // Devuelve el monitor encontrado
+    }
+    cout << "Monitor no encontrado." << endl; 
+    return nullptr;
+}
+
+// Texto con las materias de un monitor
+static string textoMaterias(const Monitor& mon) {
+    const vector<string>& lista = mon.getMaterias();   // Materias del monitor
+    if (lista.empty()) return "(sin asignar)";   // Si no tiene ninguna
+    string texto;
+    for (size_t i = 0; i < lista.size(); i++) {   // Recorre la lista
+        if (i > 0) texto += ", ";
+        texto += lista[i];
+    }
+    return texto;
+}
+
+// Agrega franjas de disponibilidad (dia, inicio y fin) a un monitor
+static void pedirDisponibilidad(Monitor& mon) {   // Captura la disponibilidad como franjas validadas
+    string actual = mon.getHorario();
+    cout << "Disponibilidad actual: " << (actual.empty() ? "(sin disponibilidad)" : actual) << endl;
+    while (true) {
+        int dia = leerRango("Dia de la franja (1=Lunes ... 6=Sabado, 0 para terminar): ", 0, 6);   // Dia de la franja
+        if (dia == 0) break;
+        int hIni = leerRango("Hora de inicio, formato 24h (6-19): ", HORA_INICIO_DIA, 19);   // Hora de inicio
+        int mIni = leerRango("Minutos de inicio (0 o 30): ", 0, 30);   // Minutos de inicio
+        int hFin = leerRango("Hora de fin, formato 24h (6-20): ", HORA_INICIO_DIA, 20);   //Hora de fin
+        int mFin = leerRango("Minutos de fin (0 o 30): ", 0, 30);   //Minutos de fin
+        if ((mIni != 0 && mIni != 30) || (mFin != 0 && mFin != 30)) {   //Solo se aceptan bloques de 30 minutos
+            cout << "Los minutos deben ser 0 o 30." << endl;
+            continue;   // Vuelve a pedir otra franja
+        }
+        int inicio = (hIni - HORA_INICIO_DIA) * 2 + (mIni == 30 ? 1 : 0);   // Convierte la hora de inicio a franja de 30 min
+        int fin = (hFin - HORA_INICIO_DIA) * 2 + (mFin == 30 ? 1 : 0);   // Convierte la hora de fin a franja de 30 min
+        if (fin <= inicio) {
+            cout << "La hora de fin debe ser posterior a la de inicio. Franja rechazada." << endl;
+            continue;   // Vuelve a pedir otra franja
+        }
+        if (fin > FRANJAS_DIA) {   // El horario termina maximo a las 8:00 PM
+            cout << "La franja se sale del horario (maximo 8:00 PM)." << endl;
+            continue;   // Vuelve a pedir otra franja
+        } 
+        if (!mon.agregarFranja(dia - 1, inicio, fin)) {
+            cout << "La franja se cruza con otra ya registrada." << endl;
+            continue;   // Vuelve a pedir otra franja
+        }
+        cout << "Franja agregada: " << nombreDia(dia - 1) << " " << formatoHora(inicio) << " - " << formatoHora(fin) << endl;
+    }
+    string nueva = mon.getHorario();
+    cout << "Disponibilidad del monitor: " << (nueva.empty() ? "(sin disponibilidad)" : nueva) << endl;
+}
+
+// Pide las materias iniciales de un monitor recien registrado (no quedan en la pila de deshacer)
+static void pedirMateriasMonitor(Monitor& mon, const vector<Materia>& materias) {
+    while (true) {
+        string codigo;
+        cout << "Codigo de una materia que atiende el monitor (0 para terminar): ";
+        if (!(cin >> codigo) || codigo == "0") break;
+        long c = 0;
+        if (buscarMateriaBinaria(materias, codigo, c) == -1) cout << "No existe esa materia." << endl; 
+        else if (!mon.agregarMateria(codigo)) cout << "El monitor ya tiene esa materia." << endl;   // Rechaza repetidas
+        else cout << "Materia " << codigo << " agregada." << endl;   // Confirma la materia
+    }
+    cout << "Materias del monitor: " << textoMaterias(mon) << endl;
+}
+
+// Opcion 7 del administrador: revierte la ultima asignacion; si es una materia de un monitor con varias, deja elegir cual
+static void revertirAsignacion(PilaAsignaciones& historial, vector<Solicitud>& solicitudes,
+                               ColaSolicitudes& cola, BitacoraAsignaciones& bitacora) {
+    if (historial.isEmpty()) {   // Si no hay nada, deshacerAsignacion ya muestra el mensaje
+        deshacerAsignacion(historial, solicitudes, cola, bitacora);
+        return;
+    }
+    Asignacion ultima = historial.top();   // Lee la ultima asignacion sin sacarla
+    Monitor* mon = ultima.monitor;   // Monitor afectado
+    if (ultima.idSolicitud != 0 || mon->getMaterias().size() <= 1) {
+        deshacerAsignacion(historial, solicitudes, cola, bitacora);
+        return;
+    }
+    vector<string> opciones = historial.materiasRevertibles(mon);
+    cout << "La ultima asignacion fue la materia " << ultima.materiaNueva << " del monitor " << mon->getUsername() << "." << endl;
+    cout << "Materias actuales del monitor: " << textoMaterias(*mon) << endl;
+    cout << "¿Que materia desea revertir?" << endl;
+    for (size_t i = 0; i < opciones.size(); i++) {
+        cout << "  " << (i + 1) << ". " << opciones[i] << (i == 0 ? " (ultima asignada)" : "") << endl;
+    }
+    cout << "  0. Cancelar" << endl;
+    int eleccion = leerRango("Seleccione una opcion: ", 0, static_cast<int>(opciones.size()));
+    if (eleccion == 0) {   //El usuario cancela
+        cout << "Reversion cancelada. No se modifico nada." << endl;
+        return;
+    }
+    deshacerMateriaElegida(*mon, opciones[eleccion - 1], solicitudes, historial, bitacora);   // Revierte solo la materia elegida
+}
+
 // Registra un usuario nuevo de cualquier rol y lo agrega al vector
-static void registrarUsuario(vector<Usuario*>& usuarios) {
+static void registrarUsuario(vector<Usuario*>& usuarios, const vector<Materia>& materias) {
     int rol = leerRango("Rol (1 = Administrador, 2 = Profesor, 3 = Estudiante, 4 = Monitor): ", 1, 4);
     string nombres = leerTexto("Nombres: ");
     string apellidos = leerTexto("Apellidos: ");
@@ -205,9 +307,16 @@ static void registrarUsuario(vector<Usuario*>& usuarios) {
         if (rol == 3) {
             nuevo = new Estudiante(nombres, apellidos, username, password, codigo, carrera, semestre);
         } else {
-            string horario = leerTexto("Horario de disponibilidad: ");
+            string horario = "";
             nuevo = new Monitor(nombres, apellidos, username, password, codigo, carrera, semestre,
                                 maxMonitor + 1, horario);
+            Monitor* nuevoMonitor = static_cast<Monitor*>(nuevo);
+            pedirDisponibilidad(*nuevoMonitor);
+            while (nuevoMonitor->getDisponibilidad().empty() && !cin.eof()) {
+                cout << "El monitor necesita al menos una franja de disponibilidad." << endl;
+                pedirDisponibilidad(*nuevoMonitor);
+            }
+            pedirMateriasMonitor(*nuevoMonitor, materias);
         }
     }
 
@@ -411,8 +520,8 @@ void menuProfesor(Profesor& prof, vector<Materia>& materias, vector<Solicitud>& 
             for (Usuario* u : usuarios) {
                 Monitor* mon = dynamic_cast<Monitor*>(u);
                 if (!mon) continue;
-                string materia = mon->getMateriaAsignada().empty() ? "(sin asignar)" : mon->getMateriaAsignada();
-                cout << mon->getNombres() << " " << mon->getApellidos() << " | Materia: " << materia
+                string materia = textoMaterias(*mon);
+                cout << mon->getNombres() << " " << mon->getApellidos() << " | Materias: " << materia
                      << " | Horario: " << mon->getHorario() << endl;
                 hay = true;
             }
@@ -441,10 +550,12 @@ void menuAdministrador(Administrador& admin, vector<Materia>& materias, vector<S
         cout << "6. Asignar materia a un monitor" << endl;
         cout << "7. Deshacer ultima asignacion" << endl;
         cout << "8. Registrar nuevo usuario" << endl;
-        cout << "9. Asignar solicitud pendiente a un monitor" << endl;     // NUEVO
-        cout << "10. Ver bitacora de asignaciones" << endl;                // NUEVO
-        cout << "11. Ver solicitudes ordenadas" << endl;                    // NUEVO
+        cout << "9. Asignar solicitud pendiente a un monitor" << endl;     
+        cout << "10. Ver bitacora de asignaciones" << endl;                
+        cout << "11. Ver solicitudes ordenadas" << endl;                   
         cout << "12. Ver horario de una materia" << endl;
+        cout << "13. Ver materias de un monitor" << endl;
+        cout << "14. Definir disponibilidad de un monitor" << endl;
         cout << "0. Cerrar sesion" << endl;
         opcion = leerOpcion();
 
@@ -528,15 +639,14 @@ void menuAdministrador(Administrador& admin, vector<Materia>& materias, vector<S
                 cout << "La materia no existe." << endl;
                 continue;
             }
-            // CAMBIO: ahora tambien recibe la bitacora
+            //Ahora tambien recibe la bitacora
             asignarMateriaAMonitor(*mon, codigo, historial, bitacora);
 
         } else if (opcion == 7) {
-            // CAMBIO: ahora recibe solicitudes, cola y bitacora para poder revertir solicitudes
-            deshacerAsignacion(historial, solicitudes, cola, bitacora);
+            revertirAsignacion(historial, solicitudes, cola, bitacora);
 
         } else if (opcion == 8) {
-            registrarUsuario(usuarios);
+            registrarUsuario(usuarios, materias);
 
         } else if (opcion == 9) {
             // NUEVO: asignar una solicitud pendiente a un monitor
@@ -567,6 +677,14 @@ void menuAdministrador(Administrador& admin, vector<Materia>& materias, vector<S
 
         } else if (opcion == 12) {
             verHorarioMateria(materias);
+        } else if (opcion == 13) {   // Ver las materias de un monitor)
+            Monitor* mon = buscarMonitorPorUsername(usuarios);
+            if (mon) cout << "Materias de " << mon->getUsername() << ": " << textoMaterias(*mon) << endl; 
+
+        } else if (opcion == 14) {   // Definir la disponibilidad de un monitor)
+            Monitor* mon = buscarMonitorPorUsername(usuarios); 
+            
+            if (mon) pedirDisponibilidad(*mon);
         } else if (opcion != 0) {
             cout << "Opcion invalida." << endl;
         }

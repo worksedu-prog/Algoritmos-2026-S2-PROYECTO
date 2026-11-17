@@ -33,6 +33,7 @@ int main() {
     gestorArchivos.cargarUsuarios(usuarios);
     gestorArchivos.cargarMaterias(materias);
     gestorArchivos.cargarSolicitudes(solicitudes);
+    gestorArchivos.cargarBitacora(bitacora);
     for (int i = 0; i < solicitudes.size(); i++) {
         if (solicitudes[i].getId() > contadorSolicitudes) {
             contadorSolicitudes = solicitudes[i].getId();
@@ -43,11 +44,14 @@ int main() {
     ordenarMergeSort(materias, POR_CODIGO);
 
     // Se reconstruye la cola con prioridad con las solicitudes que siguen pendientes
-    for (int i = 0; i < solicitudes.size(); i++) {
+        for (int i = 0; i < solicitudes.size(); i++) {
         if (solicitudes[i].getId() > contadorSolicitudes) contadorSolicitudes = solicitudes[i].getId();
-        // NUEVO: las asignaciones activas no se guardan (igual que la pila), asi que una
+        
         // solicitud que quedo "Asignada" al cerrar vuelve a "Pendiente" para no perderse
-        if (solicitudes[i].getEstado() == "Asignada") solicitudes[i].setEstado("Pendiente");
+        if (solicitudes[i].getEstado() == "Asignada") {   
+            solicitudes[i].setEstado("Pendiente");
+            bitacora.registrar("REVERSION automatica de la solicitud #" + to_string(solicitudes[i].getId()) + " al reiniciar el programa (la asignacion no se guarda)");
+        }
         if (solicitudes[i].getEstado() == "Pendiente") {
             cola.encolar(solicitudes[i].getId(), solicitudes[i].getUrgencia());
         }
@@ -110,7 +114,7 @@ int main() {
     gestorArchivos.guardarUsuarios(usuarios);
     gestorArchivos.guardarMaterias(materias);
     gestorArchivos.guardarSolicitudes(solicitudes);
-
+    gestorArchivos.guardarBitacora(bitacora);
     // Liberación de memoria dinámica
     for (Usuario* u : usuarios) {delete u;}
     usuarios.clear();

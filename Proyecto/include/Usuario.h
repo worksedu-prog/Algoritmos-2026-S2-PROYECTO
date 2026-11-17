@@ -6,6 +6,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include "Materia.h"
 
 using namespace std;
 
@@ -57,28 +58,35 @@ public:
     int getSemestre() const { return semestre; }
 };
 
-// Un Monitor es un Estudiante con horario y una materia asignada
+// Un Monitor es un Estudiante con horario y una lista de materias que atiende
 class Monitor : public Estudiante {
 private:
     long codigoMonitor;
     string horarioDisponibilidad;
-    string materiaAsignada;   // codigo de la materia ("" si no tiene)
-    int solicitudActual;      // Id de la solicitud que tiene asignada (0 = franja libre)
+    vector<string> materiasMonitor;   // Unica lista de materias del monitor; reemplaza a la variable string materiaAsignada
+    int solicitudActual;
+    vector<BloqueHorario> disponibilidad;
 
 public:
     Monitor(string nombres, string apellidos, string username, string password,
             long codigoEstudiante, string carrera, int semestre,
             long codigoMonitor, string horarioDisponibilidad);
 
-    void asignarMateria(const string& codigoMateria) { materiaAsignada = codigoMateria; }
+    // Se elimino asignarMateria() y getMateriaAsignada() porque ahora se usan agregarMateria(), quitarMateria() y getMaterias() con tal de atender multiples materias
     long getCodigoMonitor() const { return codigoMonitor; }
-    string getHorario() const { return horarioDisponibilidad; }
-    string getMateriaAsignada() const { return materiaAsignada; }
+    string getHorario() const;
 
-    // NUEVO: control de la franja del monitor
+    
     int getSolicitudActual() const { return solicitudActual; }
     void setSolicitudActual(int id) { solicitudActual = id; }
     bool estaLibre() const { return solicitudActual == 0; }
+
+    const vector<string>& getMaterias() const { return materiasMonitor; }   // Lista unica de materias del monitor)
+    bool agregarMateria(const string& codigo);   // Agrega una materia; false si el codigo esta vacio o ya la tiene
+    bool quitarMateria(const string& codigo);   // Quita una materia; false si no la tiene
+    bool dominaMateria(const string& codigo) const;   // True si la materia esta en la lista del monitor)
+    const vector<BloqueHorario>& getDisponibilidad() const { return disponibilidad; }   // Franjas de disponibilidad)
+    bool agregarFranja(int dia, int inicio, int fin);   // Agrega una franja valida. False si es invalida o se cruza con otra
 };
 
 class Profesor : public Usuario {
