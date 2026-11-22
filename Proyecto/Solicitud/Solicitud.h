@@ -20,7 +20,7 @@ inline string nombreUrgencia(int urgencia) {
 
 class Solicitud {
 private:
-    int id;                  //indica el orden de llegada
+    int id;                  // indica el orden de llegada
     long codigoEstudiante;
     string codigoMateria;
     int urgencia;
@@ -67,7 +67,7 @@ public:
     // Compara tambien por id hace que una solicitud reencolada (al deshacer
     // una asignacion) recupere su lugar por antiguedad y no quede al final de su urgencia.
     void encolar(int id, int urgencia) {
-        int pos = 0;
+        size_t pos = 0;
         while (pos < elementos.size() &&
                (elementos[pos].urgencia > urgencia ||
                 (elementos[pos].urgencia == urgencia && elementos[pos].id < id))) pos++;
@@ -81,7 +81,7 @@ public:
 
     // Saca una solicitud de cualquier posicion para cancelarla
     void eliminar(int id) {
-        for (int i = 0; i < elementos.size(); i++) {
+        for (size_t i = 0; i < elementos.size(); i++) {
             if (elementos[i].id == id) { elementos.erase(elementos.begin() + i); return; }
         }
     }
@@ -90,5 +90,21 @@ public:
     int tamano() const { return static_cast<int>(elementos.size()); }
     const vector<ItemCola>& getElementos() const { return elementos; }
 };
+
+// ============================================================================
+// ALGORITMOS DE SOLICITUD: Busqueda y Ordenamiento
+// ============================================================================
+
+// Criterios para ordenar solicitudes
+enum CriterioSolicitud { SOL_POR_URGENCIA = 1, SOL_POR_ANTIGUEDAD = 2, SOL_POR_MATERIA = 3 };
+
+// Devuelve la posicion encontrada o -1
+int buscarSolicitudSecuencial(const vector<Solicitud>& solicitudes, int id);
+
+// Ordena solicitudes (merge sort recursivo) y devuelve el numero de comparaciones.
+//  SOL_POR_URGENCIA:   mayor urgencia primero; a igual urgencia, la mas antigua
+//  SOL_POR_ANTIGUEDAD: la mas antigua primero (id menor = llego antes)
+//  SOL_POR_MATERIA:    por codigo de materia; dentro de cada materia, la mas antigua
+long ordenarSolicitudes(vector<Solicitud>& v, int criterio);
 
 #endif

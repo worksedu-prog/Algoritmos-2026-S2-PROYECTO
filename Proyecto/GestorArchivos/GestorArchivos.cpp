@@ -1,6 +1,6 @@
 //GestorArchivos.cpp
 #include "GestorArchivos.h"
-#include "../Algoritmos/Algoritmos.h"
+#include "../Materia/Materia.h"
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -160,7 +160,7 @@ bool GestorArchivos::guardarMaterias(const vector<Materia>& materias) {
     for (const Materia& m : materias) {
         archivo << m.getCodigo() << "," << m.getNombre() << "," << m.getCreditos() << "," << m.getTipo() << ",";
         const vector<string>& previos = m.getPrerrequisitos();
-        for (int i = 0; i < previos.size(); i++) archivo << (i > 0 ? ";" : "") << previos[i];
+        for (size_t i = 0; i < previos.size(); i++) archivo << (i > 0 ? ";" : "") << previos[i];
         archivo << "," << horarioATexto(m) << "\n";
     }
     return true;
