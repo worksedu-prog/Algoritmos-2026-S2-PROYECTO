@@ -1,6 +1,6 @@
 //GestorArchivos.cpp
-#include "../include/GestorArchivos.h"
-#include "../include/Algoritmos.h"
+#include "GestorArchivos.h"
+#include "../Algoritmos/Algoritmos.h"
 #include <fstream>
 #include <sstream>
 #include <iostream>

@@ -11,10 +11,10 @@
 
 #include <string>
 #include <vector>
-#include "Usuario.h"
-#include "Materia.h"
-#include "Solicitud.h"
-#include "Asignaciones.h"
+#include "../Usuario/Usuario.h"
+#include "../Materia/Materia.h"
+#include "../Solicitud/Solicitud.h"
+#include "../Asignaciones/Asignaciones.h"
 
 using namespace std;
 

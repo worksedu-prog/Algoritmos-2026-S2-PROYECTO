@@ -52,10 +52,10 @@ git clone <url-del-repositorio>
 cd Algoritmos-2026-S2-PROYECTO
 
 # 2. Compilar
-g++ -std=c++17 -g Proyecto/src/*.cpp -o Proyecto/src/Software
+g++ -std=c++17 -g Proyecto/main.cpp Proyecto/*/*.cpp -o Proyecto/Software
 
-# 3. Ejecutar (desde la carpeta src, o desde la raíz: el programa encuentra data/ solo)
-cd Proyecto/src
+# 3. Ejecutar (desde la carpeta Proyecto, o desde la raíz: el programa encuentra data/ solo)
+cd Proyecto
 ./Software          # en Windows: Software.exe
 ```
 
@@ -442,7 +442,7 @@ Monitor,Nombres,Apellidos,Usuario,Clave,Activo,CodigoEst,Carrera,Semestre,Codigo
 Profesor,Nombres,Apellidos,Usuario,Clave,Activo,Departamento
 ```
 
-> El programa localiza `data/` automáticamente tanto si lo ejecutas desde `Proyecto/src/`, desde `Proyecto/` o desde la raíz del repositorio.
+> El programa localiza `data/` automáticamente tanto si lo ejecutas desde `Proyecto/` o desde la raíz del repositorio.
 
 ---
 

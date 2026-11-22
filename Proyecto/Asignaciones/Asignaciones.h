@@ -8,8 +8,8 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include "Usuario.h"
-#include "Solicitud.h"
+#include "../Usuario/Usuario.h"
+#include "../Solicitud/Solicitud.h"
 
 using namespace std;
 

@@ -1,5 +1,5 @@
 // Algoritmos.cpp
-#include "../include/Algoritmos.h"
+#include "Algoritmos.h"
 #include <algorithm>
 #include <cctype>
 #include <cstdio>

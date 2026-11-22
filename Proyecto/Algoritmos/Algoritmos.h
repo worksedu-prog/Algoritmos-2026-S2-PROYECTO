@@ -12,8 +12,8 @@
 
 #include <string>
 #include <vector>
-#include "Materia.h"
-#include "Solicitud.h"
+#include "../Materia/Materia.h"
+#include "../Solicitud/Solicitud.h"
 
 using namespace std;
 

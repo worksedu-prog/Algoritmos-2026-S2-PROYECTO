@@ -3,14 +3,14 @@
 #include <string>
 #include <vector>
 #include <limits>
-#include "../include/Usuario.h"
-#include "../include/Materia.h"
-#include "../include/Solicitud.h"
-#include "../include/Asignaciones.h"
-#include "../include/GestorArchivos.h"
-#include "../include/Grafo.h"
-#include "../include/Algoritmos.h"
-#include "../include/Menus.h"
+#include "Usuario/Usuario.h"
+#include "Materia/Materia.h"
+#include "Solicitud/Solicitud.h"
+#include "Asignaciones/Asignaciones.h"
+#include "GestorArchivos/GestorArchivos.h"
+#include "Grafo/Grafo.h"
+#include "Algoritmos/Algoritmos.h"
+#include "Menus/Menus.h"
 
 
 using namespace std;

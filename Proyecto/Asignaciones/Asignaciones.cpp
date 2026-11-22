@@ -1,6 +1,6 @@
 // Asignaciones.cpp
-#include "../include/Asignaciones.h"
-#include "../include/Algoritmos.h"
+#include "Asignaciones.h"
+#include "../Algoritmos/Algoritmos.h"
 
 
 // Muestra las materias actuales de un monitor

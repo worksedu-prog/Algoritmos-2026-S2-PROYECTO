@@ -6,7 +6,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include "Materia.h"
+#include "../Materia/Materia.h"
 
 using namespace std;
 

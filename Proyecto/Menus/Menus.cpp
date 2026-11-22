@@ -1,6 +1,6 @@
 //Menus.cpp
-#include "../include/Menus.h"
-#include "../include/Algoritmos.h"
+#include "Menus.h"
+#include "../Algoritmos/Algoritmos.h"
 #include <iostream>
 #include <algorithm>
 #include <limits>

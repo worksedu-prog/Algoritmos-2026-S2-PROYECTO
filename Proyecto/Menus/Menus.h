@@ -4,10 +4,10 @@
 #define MENUS_H
 
 #include <vector>
-#include "Usuario.h"
-#include "Materia.h"
-#include "Solicitud.h"
-#include "Asignaciones.h" //PilaAsignaciones y Bitacora
+#include "../Usuario/Usuario.h"
+#include "../Materia/Materia.h"
+#include "../Solicitud/Solicitud.h"
+#include "../Asignaciones/Asignaciones.h" //PilaAsignaciones y Bitacora
 
 using namespace std;
 

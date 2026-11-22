@@ -1,5 +1,5 @@
 // Materia.cpp
-#include "../include/Materia.h"
+#include "Materia.h"
 
 // Todas las franjas empiezan sin horario
 static void limpiarHorario(bool horario[DIAS_SEMANA][FRANJAS_DIA]) {

@@ -7,18 +7,20 @@
             "args": [
                 "-fdiagnostics-color=always",
                 "-g",
-                "-I${workspaceFolder}\\Proyecto\\include",
-                "${workspaceFolder}\\Proyecto\\src\\Algoritmos.cpp",
-                "${workspaceFolder}\\Proyecto\\src\\GestorArchivos.cpp",
-                "${workspaceFolder}\\Proyecto\\src\\main.cpp",
-                "${workspaceFolder}\\Proyecto\\src\\Materia.cpp",
-                "${workspaceFolder}\\Proyecto\\src\\Menus.cpp",
-                "${workspaceFolder}\\Proyecto\\src\\Usuario.cpp",
+                "${workspaceFolder}\\Proyecto\\main.cpp",
+                "${workspaceFolder}\\Proyecto\\Algoritmos\\Algoritmos.cpp",
+                "${workspaceFolder}\\Proyecto\\Asignaciones\\Asignaciones.cpp",
+                "${workspaceFolder}\\Proyecto\\GestorArchivos\\GestorArchivos.cpp",
+                "${workspaceFolder}\\Proyecto\\Grafo\\Grafo.cpp",
+                "${workspaceFolder}\\Proyecto\\Materia\\Materia.cpp",
+                "${workspaceFolder}\\Proyecto\\Menus\\Menus.cpp",
+                "${workspaceFolder}\\Proyecto\\Solicitud\\Solicitud.cpp",
+                "${workspaceFolder}\\Proyecto\\Usuario\\Usuario.cpp",
                 "-o",
-                "${workspaceFolder}\\Proyecto\\src\\Software.exe"
+                "${workspaceFolder}\\Proyecto\\Software.exe"
             ],
             "options": {
-                "cwd": "${workspaceFolder}\\Proyecto\\src"
+                "cwd": "${workspaceFolder}\\Proyecto"
             },
             "problemMatcher": [
                 "$gcc"
@@ -36,18 +38,20 @@
             "args": [
                 "-fdiagnostics-color=always",
                 "-g",
-                "-I${workspaceFolder}\\Proyecto\\include",
-                "${workspaceFolder}\\Proyecto\\src\\Algoritmos.cpp",
-                "${workspaceFolder}\\Proyecto\\src\\GestorArchivos.cpp",
-                "${workspaceFolder}\\Proyecto\\src\\main.cpp",
-                "${workspaceFolder}\\Proyecto\\src\\Materia.cpp",
-                "${workspaceFolder}\\Proyecto\\src\\Menus.cpp",
-                "${workspaceFolder}\\Proyecto\\src\\Usuario.cpp",
+                "${workspaceFolder}\\Proyecto\\main.cpp",
+                "${workspaceFolder}\\Proyecto\\Algoritmos\\Algoritmos.cpp",
+                "${workspaceFolder}\\Proyecto\\Asignaciones\\Asignaciones.cpp",
+                "${workspaceFolder}\\Proyecto\\GestorArchivos\\GestorArchivos.cpp",
+                "${workspaceFolder}\\Proyecto\\Grafo\\Grafo.cpp",
+                "${workspaceFolder}\\Proyecto\\Materia\\Materia.cpp",
+                "${workspaceFolder}\\Proyecto\\Menus\\Menus.cpp",
+                "${workspaceFolder}\\Proyecto\\Solicitud\\Solicitud.cpp",
+                "${workspaceFolder}\\Proyecto\\Usuario\\Usuario.cpp",
                 "-o",
-                "${workspaceFolder}\\Proyecto\\src\\Software.exe"
+                "${workspaceFolder}\\Proyecto\\Software.exe"
             ],
             "options": {
-                "cwd": "${workspaceFolder}\\Proyecto\\src"
+                "cwd": "${workspaceFolder}\\Proyecto"
             },
             "problemMatcher": [
                 "$gcc"
