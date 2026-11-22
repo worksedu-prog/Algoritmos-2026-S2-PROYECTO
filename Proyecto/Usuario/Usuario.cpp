@@ -1,7 +1,7 @@
 //Usuario.cpp
 
 #include "Usuario.h"
-#include "../Algoritmos/Algoritmos.h"   // Se usa para nombreDia y formatoHora para escribir las franjas como texto
+#include "../Materia/Materia.h"   // Se usa para nombreDia y formatoHora para escribir las franjas como texto
 #include <algorithm>   // Se usa para buscar una materia en la lista del monitor mediante un "find"
 
 Usuario::Usuario() : activo(true) {}

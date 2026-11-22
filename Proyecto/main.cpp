@@ -9,9 +9,7 @@
 #include "Asignaciones/Asignaciones.h"
 #include "GestorArchivos/GestorArchivos.h"
 #include "Grafo/Grafo.h"
-#include "Algoritmos/Algoritmos.h"
 #include "Menus/Menus.h"
-
 
 using namespace std;
 
@@ -34,7 +32,7 @@ int main() {
     gestorArchivos.cargarMaterias(materias);
     gestorArchivos.cargarSolicitudes(solicitudes);
     gestorArchivos.cargarBitacora(bitacora);
-    for (int i = 0; i < solicitudes.size(); i++) {
+    for (size_t i = 0; i < solicitudes.size(); i++) {
         if (solicitudes[i].getId() > contadorSolicitudes) {
             contadorSolicitudes = solicitudes[i].getId();
         }
@@ -44,7 +42,7 @@ int main() {
     ordenarMergeSort(materias, POR_CODIGO);
 
     // Se reconstruye la cola con prioridad con las solicitudes que siguen pendientes
-        for (int i = 0; i < solicitudes.size(); i++) {
+    for (size_t i = 0; i < solicitudes.size(); i++) {
         if (solicitudes[i].getId() > contadorSolicitudes) contadorSolicitudes = solicitudes[i].getId();
         
         // solicitud que quedo "Asignada" al cerrar vuelve a "Pendiente" para no perderse

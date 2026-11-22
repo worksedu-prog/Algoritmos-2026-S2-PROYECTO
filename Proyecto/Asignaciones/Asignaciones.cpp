@@ -1,7 +1,6 @@
 // Asignaciones.cpp
 #include "Asignaciones.h"
-#include "../Algoritmos/Algoritmos.h"
-
+#include "../Solicitud/Solicitud.h"
 
 // Muestra las materias actuales de un monitor
 static void mostrarMateriasMonitor(const Monitor& mon) {
@@ -24,7 +23,7 @@ void BitacoraAsignaciones::mostrar() const {
         cout << "La bitacora esta vacia." << endl;
         return;
     }
-    for (int i = 0; i < registros.size(); i++) {
+    for (size_t i = 0; i < registros.size(); i++) {
         cout << (i + 1) << ". " << registros[i] << endl;
     }
 }

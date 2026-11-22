@@ -47,4 +47,32 @@ public:
     void mostrarInfo() const;
 };
 
+// Criterios para ordenar materias
+enum CriterioMateria { POR_CODIGO = 1, POR_NOMBRE = 2, POR_CREDITOS = 3 };
+
+// Devuelven la posicion encontrada o -1 y las comparaciones
+int buscarMateriaSecuencial(const vector<Materia>& materias, const string& codigo, long& comparaciones);
+int buscarMateriaBinaria(const vector<Materia>& materias, const string& codigo, long& comparaciones);
+
+// Ordenan segun el criterio y devuelven el numero de comparaciones
+long ordenarInsercion(vector<Materia>& v, int criterio);
+long ordenarMergeSort(vector<Materia>& v, int criterio);
+long ordenarQuickSort(vector<Materia>& v, int criterio);
+
+// Imprime los prerrequisitos de una materia
+// Requiere 'materias' ordenado por codigo
+void mostrarPrerrequisitos(const vector<Materia>& materias, const string& codigo, int nivel = 0);
+
+// Genera un codigo nuevo y unico
+string generarCodigoMateria(const string& nombre, const vector<Materia>& materias);
+
+// Horario de materias
+string nombreDia(int dia);                                  // 0 = Lunes ... 5 = Sabado
+string formatoHora(int franja);                             // 6 -> "9:00 AM"
+vector<BloqueHorario> bloquesDeHorario(const Materia& m);   // une franjas consecutivas
+string horarioATexto(const Materia& m);                     // para guardar: "3@6-11|0@2-4"
+void textoAHorario(const string& texto, Materia& m);        // inverso: llena el horario
+void mostrarMatrizHorario(const Materia& m);               // cuadricula dias x franjas
+void mostrarHorarioMateria(const vector<Materia>& materias, const string& codigo);  // "Jueves, 9:00 AM - 11:30 AM"
+
 #endif

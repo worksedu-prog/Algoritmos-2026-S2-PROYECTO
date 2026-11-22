@@ -125,13 +125,12 @@ flowchart TB
         MENUS[Menus.cpp<br/>un menú por rol]
     end
     subgraph LOGI[Capa de lógica]
-        ALG[Algoritmos.cpp<br/>búsquedas · ordenamientos · recursión · horarios]
         ASG[Asignaciones.cpp<br/>asignar · deshacer · bitácora]
     end
     subgraph DOMI[Capa de dominio]
         USR[Usuario.h<br/>jerarquía de usuarios]
-        MAT[Materia.h<br/>materia y horario]
-        SOL[Solicitud.h<br/>Solicitud · ColaSolicitudes]
+        MAT[Materia.h / Materia.cpp<br/>materia, horarios, búsquedas y ordenamientos]
+        SOL[Solicitud.h / Solicitud.cpp<br/>Solicitud, ColaSolicitudes, búsqueda y ordenamiento]
     end
     subgraph PERS[Capa de persistencia]
         GA[GestorArchivos.cpp<br/>lee y escribe]
@@ -139,12 +138,10 @@ flowchart TB
     end
     MAIN --> MENUS
     MAIN --> GA
-    MENUS --> ALG
+    MENUS --> MAT
     MENUS --> ASG
     MENUS --> USR
     MENUS --> SOL
-    ALG --> MAT
-    ALG --> SOL
     ASG --> USR
     ASG --> SOL
     GA --> USR
@@ -258,18 +255,7 @@ classDiagram
         +cargarSolicitudes(solicitudes) bool
         +guardarSolicitudes(solicitudes) bool
     }
-    class Algoritmos {
-        <<utility>>
-        +buscarMateriaSecuencial(v, codigo) int
-        +buscarMateriaBinaria(v, codigo) int
-        +ordenarInsercion(v, criterio) long
-        +ordenarMergeSort(v, criterio) long
-        +ordenarQuickSort(v, criterio) long
-        +ordenarSolicitudes(v, criterio) long
-        +mostrarPrerrequisitos(v, codigo) void
-        +horarioATexto(m) string
-        +textoAHorario(texto, m) void
-    }
+
     class Asignaciones {
         <<utility>>
         +asignarMateriaAMonitor() void
@@ -297,8 +283,7 @@ classDiagram
     Asignaciones ..> PilaAsignaciones
     Asignaciones ..> BitacoraAsignaciones
     Asignaciones ..> ColaSolicitudes
-    Algoritmos ..> Materia
-    Algoritmos ..> Solicitud
+
     GestorArchivos ..> Usuario
     GestorArchivos ..> Materia
     GestorArchivos ..> Solicitud
@@ -307,7 +292,7 @@ classDiagram
 - Un **Monitor es un Estudiante** con horario, una materia asignada y la solicitud que tiene en curso (`solicitudActual`, `0` = libre).
 - Los usuarios viven en un único `vector<Usuario*>`. Al iniciar sesión, el rol decide a qué clase se hace el `static_cast` y qué menú se abre. El registro y la persistencia usan `dynamic_cast` para distinguir tipos (probando `Monitor` antes que `Estudiante`, porque un monitor también es estudiante).
 - Las clases se relacionan **por código o por id** (una solicitud guarda el código de su materia, no un puntero). Por eso los datos se guardan como texto plano sin referencias frágiles. La única excepción es `Asignacion`, que apunta al monitor real para que "deshacer" actúe sobre el objeto verdadero.
-- `Algoritmos` y `Asignaciones` agrupan **funciones libres**, no clases. Se dibujan como `<<utility>>` para mostrar qué usan.
+- `Asignaciones` agrupa **funciones libres**, no clases. Se dibuja como `<<utility>>` para mostrar qué usa. Los algoritmos de búsqueda y ordenamiento se distribuyeron en sus clases correspondientes (`Materia` y `Solicitud`) para seguir buenas prácticas de POO y alta cohesión.
 
 ### Flujo de pruebas
 
@@ -482,3 +467,4 @@ Los diagramas del README están escritos en Mermaid (se ven directo en GitHub). 
   Proyecto del curso <b>Algoritmos y Estructuras de Datos</b> · 2026-S2<br>
   <b>Julian Hernandez Y</b> · <b>David Arteaga</b>
 </p>
+
