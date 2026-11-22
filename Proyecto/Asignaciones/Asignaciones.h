@@ -53,6 +53,13 @@ public:
         }
         return false;
     }
+
+    // HU-35: al reasignar una solicitud, las entradas de la pila que la referencian pasan
+    // al nuevo monitor, asi deshacerla despues libera al monitor correcto
+    void actualizarMonitor(int idSolicitud, Monitor* nuevo) {
+        for (size_t i = 0; i < elementos.size(); i++)
+            if (elementos[i].idSolicitud == idSolicitud) elementos[i].monitor = nuevo;
+    }
 };
 
 
@@ -73,11 +80,41 @@ public:
 void asignarMateriaAMonitor(Monitor& mon, const string& codigoMateria,
                             PilaAsignaciones& historial, BitacoraAsignaciones& bitacora);
 
-// Asigna una solicitud pendiente a un monitor libre que atiende esa materia.
-// La saca de la cola, la marca "Asignada" y ocupa la franja del monitor. Devuelve false si no se pudo.
+// Duracion de una sesion de monitoria: 2 franjas de 30 min = 1 hora
+const int DURACION_SESION = 2;
+
+// HU-09.03: busca el primer bloque de DURACION_SESION que
+//   - cabe en la disponibilidad del monitor,
+//   - cabe en la disponibilidad del estudiante (si el estudiante no registro disponibilidad,
+//     solo se usa la del monitor),
+//   - no se cruza con la clase de la materia (el estudiante esta en clase),
+//   - no se cruza con otra sesion asignada del mismo monitor o del mismo estudiante.
+// 'idIgnorar' excluye una solicitud (la que se esta reasignando). O(F * S), F franjas, S solicitudes.
+bool buscarBloqueComun(const Monitor& mon, const Estudiante* est, const string& codigoMateria,
+                       const vector<Solicitud>& solicitudes, const vector<Materia>& materias,
+                       int idIgnorar, BloqueHorario& resultado);
+
+// Asigna una solicitud pendiente a un monitor libre que atiende esa materia y con horario compatible.
+// La saca de la cola, la marca "Asignada", guarda el bloque de la sesion y ocupa al monitor.
+// Si no se pudo, la solicitud sigue pendiente y devuelve false.
 bool asignarSolicitudAMonitor(Monitor& mon, int idSolicitud, vector<Solicitud>& solicitudes,
                               ColaSolicitudes& cola, PilaAsignaciones& historial,
-                              BitacoraAsignaciones& bitacora);
+                              BitacoraAsignaciones& bitacora,
+                              const vector<Usuario*>& usuarios, const vector<Materia>& materias);
+
+// HU-09.01/02: busca automaticamente un monitor activo, libre, que domine la materia y con
+// horario compatible. Si no hay ninguno, la solicitud sigue pendiente.
+bool emparejarSolicitud(int idSolicitud, vector<Solicitud>& solicitudes, ColaSolicitudes& cola,
+                        PilaAsignaciones& historial, BitacoraAsignaciones& bitacora,
+                        vector<Usuario*>& usuarios, const vector<Materia>& materias);
+
+// HU-35: cambia el monitor de una solicitud ya asignada sin deshacer asignaciones posteriores
+bool reasignarSolicitud(int idSolicitud, Monitor& nuevo, vector<Solicitud>& solicitudes,
+                        PilaAsignaciones& historial, BitacoraAsignaciones& bitacora,
+                        vector<Usuario*>& usuarios, const vector<Materia>& materias);
+
+// HU-21.04: franjas de disponibilidad del monitor que no se cruzan con la clase de la materia
+int franjasLibresDeClase(const Monitor& mon, const Materia& materia);
 
 // Desapila la ultima asignacion y la revierte:
 //  - de materia: restaura la materia anterior del monitor

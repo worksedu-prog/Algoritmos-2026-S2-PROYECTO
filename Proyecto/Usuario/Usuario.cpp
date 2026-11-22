@@ -85,3 +85,77 @@ bool Monitor::agregarFranja(int dia, int inicio, int fin) {   // Agrega una fran
     disponibilidad.push_back(BloqueHorario{dia, inicio, fin});
     return true;
 }
+
+// Misma validacion que las franjas del monitor, sobre la lista del estudiante
+bool Estudiante::agregarFranjaEstudiante(int dia, int inicio, int fin) {
+    if (dia < 0 || dia >= DIAS_SEMANA) return false;
+    if (inicio < 0 || fin > FRANJAS_DIA || inicio >= fin) return false;
+    for (size_t i = 0; i < disponibilidadEstudiante.size(); i++) {
+        if (disponibilidadEstudiante[i].dia == dia && inicio < disponibilidadEstudiante[i].fin && fin > disponibilidadEstudiante[i].inicio) return false;
+    }
+    disponibilidadEstudiante.push_back(BloqueHorario{dia, inicio, fin});
+    return true;
+}
+
+bool Estudiante::disponibleEn(int dia, int inicio, int fin) const {
+    for (size_t i = 0; i < disponibilidadEstudiante.size(); i++) {
+        const BloqueHorario& b = disponibilidadEstudiante[i];
+        if (b.dia == dia && b.inicio <= inicio && fin <= b.fin) return true;
+    }
+    return false;
+}
+
+string Estudiante::disponibilidadTexto() const {
+    string texto;
+    for (size_t i = 0; i < disponibilidadEstudiante.size(); i++) {
+        const BloqueHorario& b = disponibilidadEstudiante[i];
+        if (i > 0) texto += "; ";
+        texto += nombreDia(b.dia) + " " + formatoHora(b.inicio) + " - " + formatoHora(b.fin);
+    }
+    return texto;
+}
+
+void Estudiante::registrarEstadoMateria(const string& codigo, const string& estado) {
+    for (size_t i = 0; i < estadosMaterias.size(); i++) {
+        if (estadosMaterias[i].codigoMateria == codigo) { estadosMaterias[i].estado = estado; return; }   // se actualiza
+    }
+    estadosMaterias.push_back(EstadoMateria{codigo, estado});
+}
+
+// ============================================================================
+// Busquedas sobre la lista de usuarios
+// ============================================================================
+bool esEstudiante(const Usuario* usuario) {
+    return usuario->getRol() == "Estudiante" || usuario->getRol() == "Monitor";
+}
+
+bool esMonitor(const Usuario* usuario) {
+    return usuario->getRol() == "Monitor";
+}
+
+Estudiante* buscarEstudiantePorCodigo(const vector<Usuario*>& usuarios, long codigoEstudiante) {
+    for (size_t i = 0; i < usuarios.size(); i++) {
+        if (!esEstudiante(usuarios[i])) continue;
+        Estudiante* estudiante = static_cast<Estudiante*>(usuarios[i]);   // el rol confirma el tipo
+        if (estudiante->getCodigoEstudiante() == codigoEstudiante) return estudiante;
+    }
+    return nullptr;
+}
+
+Monitor* buscarMonitorPorCodigo(const vector<Usuario*>& usuarios, long codigoMonitor) {
+    for (size_t i = 0; i < usuarios.size(); i++) {
+        if (!esMonitor(usuarios[i])) continue;
+        Monitor* monitor = static_cast<Monitor*>(usuarios[i]);
+        if (monitor->getCodigoMonitor() == codigoMonitor) return monitor;
+    }
+    return nullptr;
+}
+
+Monitor* buscarMonitorConSolicitud(const vector<Usuario*>& usuarios, int idSolicitud) {
+    for (size_t i = 0; i < usuarios.size(); i++) {
+        if (!esMonitor(usuarios[i])) continue;
+        Monitor* monitor = static_cast<Monitor*>(usuarios[i]);
+        if (monitor->getSolicitudActual() == idSolicitud) return monitor;
+    }
+    return nullptr;
+}

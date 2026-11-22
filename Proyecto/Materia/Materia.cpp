@@ -11,21 +11,22 @@ using namespace std;
 // Todas las franjas empiezan sin horario
 static void limpiarHorario(bool horario[DIAS_SEMANA][FRANJAS_DIA]) {
     for (int d = 0; d < DIAS_SEMANA; d++)
-        for (int f = 0; f < FRANJAS_DIA; f++) horario[d][f] = false;
+    for (int f = 0; f < FRANJAS_DIA; f++) horario[d][f] = false;
 }
 
-Materia::Materia() : creditos(0) {
+Materia::Materia() : creditos(0), area("General"), nivel(1) {
     limpiarHorario(horario);
 }
 
 Materia::Materia(string codigo, string nombre, int creditos, string tipo, vector<string> prerrequisitos)
     : codigoMateria(codigo), nombre(nombre), creditos(creditos), tipo(tipo),
-      prerrequisitos(prerrequisitos) {
+      prerrequisitos(prerrequisitos), area("General"), nivel(1) {
     limpiarHorario(horario);
 }
 
 void Materia::mostrarInfo() const {
-    cout << "[" << codigoMateria << "] " << nombre << " - " << creditos << " creditos (" << tipo << ")";
+    cout << "[" << codigoMateria << "] " << nombre << " - " << creditos << " creditos (" << tipo << ")"
+         << " | " << area << " nivel " << nivel;
     if (!prerrequisitos.empty()) {
         cout << " | Prerrequisitos: ";
         for (size_t i = 0; i < prerrequisitos.size(); i++) {
@@ -40,11 +41,8 @@ void Materia::mostrarCodigo() const {
     cout << "[" << codigoMateria << "] " << nombre << endl;
 }
 
-// ============================================================================
 // ALGORITMOS DE MATERIA: Comparaciones, Busquedas y Ordenamientos
-// ============================================================================
-
-// Dice si 'a' va antes que 'b' segun el criterio (si empatan, desempata por codigo)
+// Dice que si 'a' va antes que 'b' segun el criterio (si empatan, desempata por codigo)
 static bool menorQue(const Materia& a, const Materia& b, int criterio, long& comparaciones) {
     comparaciones++;
     if (criterio == POR_NOMBRE && a.getNombre() != b.getNombre()) return a.getNombre() < b.getNombre();
@@ -52,7 +50,7 @@ static bool menorQue(const Materia& a, const Materia& b, int criterio, long& com
     return a.getCodigo() < b.getCodigo();
 }
 
-// Busquedas: secuencial O(n), binaria O(log n)
+// Busquedas secuencial O(n) y binaria O(log n)
 int buscarMateriaSecuencial(const vector<Materia>& materias, const string& codigo, long& comparaciones) {
     for (size_t i = 0; i < materias.size(); i++) {
         comparaciones++;
@@ -160,10 +158,9 @@ void mostrarPrerrequisitos(const vector<Materia>& materias, const string& codigo
     }
 }
 
-// ---------------------------------------------------------------------------
 // HORARIO DE MATERIAS
-// El horario es una matriz dias x franjas (cada dia = un entero con un bit por franja).
-// ---------------------------------------------------------------------------
+// El horario es una matriz dias x franjas 
+
 string nombreDia(int dia) {
     string dias[DIAS_SEMANA] = {"Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado"};
     return (dia >= 0 && dia < DIAS_SEMANA) ? dias[dia] : "?";
@@ -267,7 +264,7 @@ string generarCodigoMateria(const string& nombre, const vector<Materia>& materia
     int consecutivo = 100 + static_cast<int>(materias.size());
     long ignorar = 0;
     string codigo = letras + to_string(consecutivo);
-    while (buscarMateriaBinaria(materias, codigo, ignorar) != -1) {   // garantiza unicidad
+    while (buscarMateriaBinaria(materias, codigo, ignorar) != -1) { 
         consecutivo++;
         codigo = letras + to_string(consecutivo);
     }

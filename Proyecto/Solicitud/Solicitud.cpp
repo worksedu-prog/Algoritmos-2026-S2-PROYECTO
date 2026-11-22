@@ -12,16 +12,11 @@ int buscarSolicitudSecuencial(const vector<Solicitud>& solicitudes, int id) {
     return -1;
 }
 
-// ============================================================================
 // Ordenamiento de SOLICITUDES (merge sort recursivo, O(n log n), estable)
-// ============================================================================
-
-// Dice si 'a' va antes que 'b'. Siempre desempata por id (la mas antigua primero),
-// asi el orden es total y el resultado es el mismo en cualquier ejecucion.
 static bool solicitudMenorQue(const Solicitud& a, const Solicitud& b, int criterio, long& comparaciones) {
     comparaciones++;
-    if (criterio == SOL_POR_URGENCIA && a.getUrgencia() != b.getUrgencia())
-        return a.getUrgencia() > b.getUrgencia();                       // mayor urgencia primero
+    if (criterio == SOL_POR_URGENCIA && a.getPrioridad() != b.getPrioridad())
+        return a.getPrioridad() > b.getPrioridad();                     // mayor prioridad primero
     if (criterio == SOL_POR_MATERIA && a.getCodigoMateria() != b.getCodigoMateria())
         return a.getCodigoMateria() < b.getCodigoMateria();             // orden alfabetico por codigo
     return a.getId() < b.getId();                                       // antiguedad (y desempate)
