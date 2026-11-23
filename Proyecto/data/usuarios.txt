@@ -1,5 +1,105 @@
 Administrador,David,Arteaga,admin,admin123,1,1
-Estudiante,Tatiana,Cabrera,estudiante,estu123,1,1,Ingenieria de Sistemas,5
-Monitor,Julian,Hernandez,monitor,mon123,1,1,Ingenieria de Sistemas,8,1,Lunes a Viernes 2pm-4pm,,,
+Estudiante,Tatiana,Cabrera,estudiante,estu123,1,1,Ingenieria de Sistemas,5,
+Monitor,Julian,Hernandez,monitor,mon123,1,3,Ingenieria de Sistemas,8,1,Lunes a Viernes 2pm-4pm,,,
 Profesor,Carlos,Gomez,profesor,prof123,1,Ingenieria
-Estudiante,JUAN CARLOS,REINA CARDONA,juan123,carlos123,1,2,MACC,2
+Estudiante,JUAN CARLOS,REINA CARDONA,juan123,carlos123,1,2,MACC,2,
+Estudiante,Prueba Ana,Gomez,prueba100,prueba123,1,100,Ingenieria de Sistemas,1,5@12-20
+Estudiante,Prueba Luis,Gomez,prueba101,prueba123,1,101,MACC,2,1@4-8
+Estudiante,Prueba Sofia,Gomez,prueba102,prueba123,1,102,Ingenieria Industrial,3,1@4-12
+Estudiante,Prueba Mateo,Gomez,prueba103,prueba123,1,103,Economia,4,5@0-8
+Estudiante,Prueba Valeria,Gomez,prueba104,prueba123,1,104,Ingenieria de Sistemas,5,1@8-16
+Estudiante,Prueba Samuel,Gomez,prueba105,prueba123,1,105,MACC,6,0@12-18
+Estudiante,Prueba Camila,Gomez,prueba106,prueba123,1,106,Ingenieria Industrial,7,5@0-4
+Estudiante,Prueba Daniel,Gomez,prueba107,prueba123,1,107,Economia,8,4@4-10
+Estudiante,Prueba Laura,Gomez,prueba108,prueba123,1,108,Ingenieria de Sistemas,9,5@12-20
+Estudiante,Prueba Andres,Gomez,prueba109,prueba123,1,109,MACC,1,2@12-16
+Estudiante,Prueba Ana,Rodriguez,prueba110,prueba123,1,110,Ingenieria Industrial,2,5@8-16
+Estudiante,Prueba Luis,Rodriguez,prueba111,prueba123,1,111,Economia,3,1@8-14
+Estudiante,Prueba Sofia,Rodriguez,prueba112,prueba123,1,112,Ingenieria de Sistemas,4,0@16-24
+Estudiante,Prueba Mateo,Rodriguez,prueba113,prueba123,1,113,MACC,5,2@0-4
+Estudiante,Prueba Valeria,Rodriguez,prueba114,prueba123,1,114,Ingenieria Industrial,6,2@8-16
+Estudiante,Prueba Samuel,Rodriguez,prueba115,prueba123,1,115,Economia,7,0@8-12
+Estudiante,Prueba Camila,Rodriguez,prueba116,prueba123,1,116,Ingenieria de Sistemas,8,1@16-20
+Estudiante,Prueba Daniel,Rodriguez,prueba117,prueba123,1,117,MACC,9,3@8-14
+Estudiante,Prueba Laura,Rodriguez,prueba118,prueba123,1,118,Ingenieria Industrial,1,4@8-12
+Estudiante,Prueba Andres,Rodriguez,prueba119,prueba123,1,119,Economia,2,0@16-22
+Estudiante,Prueba Ana,Lopez,prueba120,prueba123,1,120,Ingenieria de Sistemas,3,1@4-10
+Estudiante,Prueba Luis,Lopez,prueba121,prueba123,1,121,MACC,4,3@4-12
+Estudiante,Prueba Sofia,Lopez,prueba122,prueba123,1,122,Ingenieria Industrial,5,4@4-10
+Estudiante,Prueba Mateo,Lopez,prueba123,prueba123,1,123,Economia,6,4@8-16
+Estudiante,Prueba Valeria,Lopez,prueba124,prueba123,1,124,Ingenieria de Sistemas,7,1@16-20
+Estudiante,Prueba Samuel,Lopez,prueba125,prueba123,1,125,MACC,8,0@4-10
+Estudiante,Prueba Camila,Lopez,prueba126,prueba123,1,126,Ingenieria Industrial,9,2@16-24
+Estudiante,Prueba Daniel,Lopez,prueba127,prueba123,1,127,Economia,1,1@12-16
+Estudiante,Prueba Laura,Lopez,prueba128,prueba123,1,128,Ingenieria de Sistemas,2,2@12-16
+Estudiante,Prueba Andres,Lopez,prueba129,prueba123,1,129,MACC,3,3@8-14
+Estudiante,Prueba Ana,Martinez,prueba130,prueba123,1,130,Ingenieria Industrial,4,2@4-12
+Estudiante,Prueba Luis,Martinez,prueba131,prueba123,1,131,Economia,5,4@12-18
+Estudiante,Prueba Sofia,Martinez,prueba132,prueba123,1,132,Ingenieria de Sistemas,6,1@8-12
+Estudiante,Prueba Mateo,Martinez,prueba133,prueba123,1,133,MACC,7,0@12-20
+Estudiante,Prueba Valeria,Martinez,prueba134,prueba123,1,134,Ingenieria Industrial,8,2@12-18
+Estudiante,Prueba Samuel,Martinez,prueba135,prueba123,1,135,Economia,9,0@0-4
+Estudiante,Prueba Camila,Martinez,prueba136,prueba123,1,136,Ingenieria de Sistemas,1,2@12-18
+Estudiante,Prueba Daniel,Martinez,prueba137,prueba123,1,137,MACC,2,4@12-20
+Estudiante,Prueba Laura,Martinez,prueba138,prueba123,1,138,Ingenieria Industrial,3,4@12-18
+Estudiante,Prueba Andres,Martinez,prueba139,prueba123,1,139,Economia,4,1@8-14
+Estudiante,Prueba Ana,Garcia,prueba140,prueba123,1,140,Ingenieria de Sistemas,5,2@8-12
+Estudiante,Prueba Luis,Garcia,prueba141,prueba123,1,141,MACC,6,2@0-8
+Estudiante,Prueba Sofia,Garcia,prueba142,prueba123,1,142,Ingenieria Industrial,7,5@0-6
+Estudiante,Prueba Mateo,Garcia,prueba143,prueba123,1,143,Economia,8,4@0-8
+Estudiante,Prueba Valeria,Garcia,prueba144,prueba123,1,144,Ingenieria de Sistemas,9,5@12-18
+Estudiante,Prueba Samuel,Garcia,prueba145,prueba123,1,145,MACC,1,5@12-18
+Estudiante,Prueba Camila,Garcia,prueba146,prueba123,1,146,Ingenieria Industrial,2,2@12-18
+Estudiante,Prueba Daniel,Garcia,prueba147,prueba123,1,147,Economia,3,5@8-14
+Estudiante,Prueba Laura,Garcia,prueba148,prueba123,1,148,Ingenieria de Sistemas,4,5@0-6
+Estudiante,Prueba Andres,Garcia,prueba149,prueba123,1,149,MACC,5,0@12-18
+Estudiante,Prueba Ana,Perez,prueba150,prueba123,1,150,Ingenieria Industrial,6,0@4-8
+Estudiante,Prueba Luis,Perez,prueba151,prueba123,1,151,Economia,7,1@16-24
+Estudiante,Prueba Sofia,Perez,prueba152,prueba123,1,152,Ingenieria de Sistemas,8,4@4-10
+Estudiante,Prueba Mateo,Perez,prueba153,prueba123,1,153,MACC,9,1@4-8
+Estudiante,Prueba Valeria,Perez,prueba154,prueba123,1,154,Ingenieria Industrial,1,0@0-4
+Estudiante,Prueba Samuel,Perez,prueba155,prueba123,1,155,Economia,2,1@0-8
+Estudiante,Prueba Camila,Perez,prueba156,prueba123,1,156,Ingenieria de Sistemas,3,5@12-16
+Estudiante,Prueba Daniel,Perez,prueba157,prueba123,1,157,MACC,4,1@8-14
+Estudiante,Prueba Laura,Perez,prueba158,prueba123,1,158,Ingenieria Industrial,5,0@4-8
+Estudiante,Prueba Andres,Perez,prueba159,prueba123,1,159,Economia,6,1@16-20
+Estudiante,Prueba Ana,Torres,prueba160,prueba123,1,160,Ingenieria de Sistemas,7,4@16-22
+Estudiante,Prueba Luis,Torres,prueba161,prueba123,1,161,MACC,8,4@8-14
+Estudiante,Prueba Sofia,Torres,prueba162,prueba123,1,162,Ingenieria Industrial,9,5@12-18
+Estudiante,Prueba Mateo,Torres,prueba163,prueba123,1,163,Economia,1,5@12-18
+Estudiante,Prueba Valeria,Torres,prueba164,prueba123,1,164,Ingenieria de Sistemas,2,5@4-10
+Estudiante,Prueba Samuel,Torres,prueba165,prueba123,1,165,MACC,3,0@4-12
+Estudiante,Prueba Camila,Torres,prueba166,prueba123,1,166,Ingenieria Industrial,4,1@4-8
+Estudiante,Prueba Daniel,Torres,prueba167,prueba123,1,167,Economia,5,3@8-14
+Estudiante,Prueba Laura,Torres,prueba168,prueba123,1,168,Ingenieria de Sistemas,6,1@16-20
+Estudiante,Prueba Andres,Torres,prueba169,prueba123,1,169,MACC,7,1@0-6
+Estudiante,Prueba Ana,Ramirez,prueba170,prueba123,1,170,Ingenieria Industrial,8,5@16-24
+Estudiante,Prueba Luis,Ramirez,prueba171,prueba123,1,171,Economia,9,1@8-14
+Estudiante,Prueba Sofia,Ramirez,prueba172,prueba123,1,172,Ingenieria de Sistemas,1,0@4-8
+Estudiante,Prueba Mateo,Ramirez,prueba173,prueba123,1,173,MACC,2,3@16-24
+Estudiante,Prueba Valeria,Ramirez,prueba174,prueba123,1,174,Ingenieria Industrial,3,3@16-22
+Estudiante,Prueba Samuel,Ramirez,prueba175,prueba123,1,175,Economia,4,3@4-8
+Estudiante,Prueba Camila,Ramirez,prueba176,prueba123,1,176,Ingenieria de Sistemas,5,1@4-8
+Estudiante,Prueba Daniel,Ramirez,prueba177,prueba123,1,177,MACC,6,5@4-8
+Estudiante,Prueba Laura,Ramirez,prueba178,prueba123,1,178,Ingenieria Industrial,7,1@8-14
+Estudiante,Prueba Andres,Ramirez,prueba179,prueba123,1,179,Economia,8,3@16-24
+Estudiante,Prueba Ana,Diaz,prueba180,prueba123,1,180,Ingenieria de Sistemas,9,4@4-10
+Estudiante,Prueba Luis,Diaz,prueba181,prueba123,1,181,MACC,1,2@4-10
+Estudiante,Prueba Sofia,Diaz,prueba182,prueba123,1,182,Ingenieria Industrial,2,3@16-22
+Estudiante,Prueba Mateo,Diaz,prueba183,prueba123,1,183,Economia,3,0@4-10
+Estudiante,Prueba Valeria,Diaz,prueba184,prueba123,1,184,Ingenieria de Sistemas,4,5@16-24
+Estudiante,Prueba Samuel,Diaz,prueba185,prueba123,1,185,MACC,5,2@4-10
+Estudiante,Prueba Camila,Diaz,prueba186,prueba123,1,186,Ingenieria Industrial,6,1@16-22
+Estudiante,Prueba Daniel,Diaz,prueba187,prueba123,1,187,Economia,7,2@0-4
+Estudiante,Prueba Laura,Diaz,prueba188,prueba123,1,188,Ingenieria de Sistemas,8,2@12-18
+Estudiante,Prueba Andres,Diaz,prueba189,prueba123,1,189,MACC,9,2@12-18
+Estudiante,Prueba Ana,Moreno,prueba190,prueba123,1,190,Ingenieria Industrial,1,4@12-16
+Estudiante,Prueba Luis,Moreno,prueba191,prueba123,1,191,Economia,2,0@0-4
+Estudiante,Prueba Sofia,Moreno,prueba192,prueba123,1,192,Ingenieria de Sistemas,3,4@0-6
+Estudiante,Prueba Mateo,Moreno,prueba193,prueba123,1,193,MACC,4,5@16-20
+Estudiante,Prueba Valeria,Moreno,prueba194,prueba123,1,194,Ingenieria Industrial,5,4@8-12
+Estudiante,Prueba Samuel,Moreno,prueba195,prueba123,1,195,Economia,6,5@16-20
+Estudiante,Prueba Camila,Moreno,prueba196,prueba123,1,196,Ingenieria de Sistemas,7,2@4-8
+Estudiante,Prueba Daniel,Moreno,prueba197,prueba123,1,197,MACC,8,5@16-20
+Estudiante,Prueba Laura,Moreno,prueba198,prueba123,1,198,Ingenieria Industrial,9,4@8-16
+Estudiante,Prueba Andres,Moreno,prueba199,prueba123,1,199,Economia,1,5@8-12

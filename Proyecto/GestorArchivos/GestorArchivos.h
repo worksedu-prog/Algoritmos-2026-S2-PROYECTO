@@ -4,8 +4,12 @@
 // Formatos (separados por coma):
 //   usuarios.txt    Rol,Nombres,Apellidos,Usuario,Clave,Activo(1/0)
 //   materias.txt    Codigo,Nombre,Creditos,Tipo,Prerrequisitos y horario
-//   solicitudes.txt Id,CodigoEstudiante,CodigoMateria,Urgencia(1-3),Estado,Descripcion
+//   materias.txt    ...,Horario,Area,Nivel   (Area y Nivel opcionales)
+//   solicitudes.txt Id,CodigoEstudiante,CodigoMateria,Urgencia(1-3),Estado,FechaCreacion(epoch),Descripcion
+//                   (las lineas antiguas sin FechaCreacion se siguen leyendo)
+//   Estudiante agrega al final: ...,CodigoEstudiante,Carrera,Semestre,Franjas
 //   Monitor agrega al final: ...,CodigoMonitor,Horario,Materias(separadas por ;),Reservada(vacia),Franjas(dia@inicio-fin separadas por |)
+
 #ifndef GESTORARCHIVOS_H
 #define GESTORARCHIVOS_H
 
@@ -23,6 +27,7 @@ private:
     string rutaUsuarios, rutaMaterias, rutaSolicitudes;
     string rutaBitacora = "data/bitacora.txt";
     string resolverRuta(const string& ruta) const;
+    string rutaEnData(const string& archivo) const;   // ruta para un archivo nuevo junto a usuarios.txt
 
 public:
     GestorArchivos(const string& rutaUsuarios = "data/usuarios.txt",
@@ -37,6 +42,18 @@ public:
     bool guardarSolicitudes(const vector<Solicitud>& solicitudes);
     bool cargarBitacora(BitacoraAsignaciones& bitacora);
     bool guardarBitacora(const BitacoraAsignaciones& bitacora);
+
+    // Revisa la carpeta data/ y los archivos antes de iniciar. Devuelve false si
+    // falta algo imprescindible (usuarios.txt: sin el no se puede iniciar sesion).
+    bool verificarEntorno() const;
+    // Estados de materias por estudiante (data/estados_materias.txt)
+    //   CodigoEstudiante,CodigoMateria,Estado
+    bool cargarEstadosMaterias(vector<Usuario*>& usuarios);
+    bool guardarEstadosMaterias(const vector<Usuario*>& usuarios);
+    // Asignaciones vigentes (data/asignaciones.txt)
+    //   IdSolicitud,CodigoMonitor,dia@inicio-fin
+    bool cargarAsignaciones(vector<Solicitud>& solicitudes, vector<Usuario*>& usuarios);
+    bool guardarAsignaciones(const vector<Solicitud>& solicitudes);
 };
 
 #endif

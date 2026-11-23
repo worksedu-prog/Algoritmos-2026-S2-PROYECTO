@@ -3,6 +3,7 @@
 #include <iostream>
 #include <algorithm>
 #include <limits>
+#include <ctime>
 
 using namespace std;
 // Lee un entero entre minimo y maximo; repite si la entrada no es valida. En fin de entrada devuelve minimo.
@@ -46,7 +47,7 @@ static void listarMaterias(const vector<Materia>& materias) {
     else if (algoritmo == 2) { comparaciones = ordenarMergeSort(copia, criterio); nombreAlgoritmo = "merge sort"; }
     else { comparaciones = ordenarQuickSort(copia, criterio); nombreAlgoritmo = "quick sort"; }
 
-    for (int i = 0; i < copia.size(); i++) copia[i].mostrarInfo();
+    for (size_t i = 0; i < copia.size(); i++) copia[i].mostrarInfo();
     cout << "(" << nombreAlgoritmo << ": " << comparaciones << " comparaciones)" << endl;
 }
 // Muestra el horario de una materia: cuadricula (dias x franjas) y la lista de bloques
@@ -125,8 +126,54 @@ static void listarSolicitudesOrdenadas(const vector<Solicitud>& solicitudes) {
     vector<Solicitud> copia = solicitudes;
     long comparaciones = ordenarSolicitudes(copia, criterio);
 
-    for (int i = 0; i < copia.size(); i++) copia[i].mostrarInfo();
+    for (size_t i = 0; i < copia.size(); i++) copia[i].mostrarInfo();
     cout << "(merge sort: " << comparaciones << " comparaciones)" << endl;
+}
+
+// Semestre del estudiante que hizo la solicitud. Si no se encuentra, devuelve 5 (semestre
+// intermedio) para que el criterio 1 de prioridad no sume puntos.
+static int semestreDelSolicitante(const vector<Usuario*>& usuarios, const Solicitud& solicitud) {
+    const Estudiante* solicitante = buscarEstudiantePorCodigo(usuarios, solicitud.getCodigoEstudiante());
+    if (solicitante == nullptr) return 5;
+    return solicitante->getSemestre();
+}
+
+void recalcularPrioridades(vector<Solicitud>& solicitudes, const vector<Usuario*>& usuarios,
+                           const vector<Materia>& materias, ColaSolicitudes& cola) {
+    GrafoPrerrequisitos grafo(materias);         // se arma una vez para todas las solicitudes
+    cola.vaciar();
+    for (size_t i = 0; i < solicitudes.size(); i++) {
+        if (solicitudes[i].getEstado() != "Pendiente") continue;
+        int semestre = semestreDelSolicitante(usuarios, solicitudes[i]);
+        solicitudes[i].setPrioridad(calcularPrioridad(semestre, solicitudes[i].getCodigoMateria(),
+                                                      solicitudes[i].getFechaCreacion(), grafo));
+        cola.encolar(solicitudes[i].getId(), solicitudes[i].getPrioridad());
+    }
+}
+
+// Muestra la cola de atencion con el desglose de los 3 criterios de cada solicitud
+static void verColaPrioridades(const vector<Solicitud>& solicitudes, const vector<Usuario*>& usuarios,
+                               const vector<Materia>& materias, const ColaSolicitudes& cola) {
+    if (cola.estaVacia()) { cout << "No hay solicitudes pendientes." << endl; return; }
+    GrafoPrerrequisitos grafo(materias);
+    int maxDep = grafo.maxDependientes();
+    long ahora = static_cast<long>(time(nullptr));
+    cout << "Pesos: semestre " << PESO_SEMESTRE << " | dependencia " << PESO_DEPENDENCIA
+         << " | antiguedad " << PESO_ANTIGUEDAD << endl;
+    const vector<ItemCola>& items = cola.getElementos();
+    for (size_t k = 0; k < items.size(); k++) {
+        int pos = buscarSolicitudSecuencial(solicitudes, items[k].id);
+        if (pos == -1) continue;
+        const Solicitud& s = solicitudes[pos];
+        int semestre = semestreDelSolicitante(usuarios, s);
+        int dep = grafo.contarDependientes(s.getCodigoMateria());
+        int dias = (ahora > s.getFechaCreacion()) ? static_cast<int>((ahora - s.getFechaCreacion()) / 86400) : 0;
+        cout << (k + 1) << ". #" << s.getId() << " " << s.getCodigoMateria()
+             << " | prioridad " << s.getPrioridad()
+             << " = sem " << semestre << " (" << puntajeSemestre(semestre) << ")"
+             << " + dep " << dep << "/" << maxDep << " (" << puntajeDependencia(dep, maxDep) << ")"
+             << " + " << dias << " dia(s) (" << puntajeAntiguedad(dias) << ")" << endl;
+    }
 }
 
 // Pide un codigo y muestra su cadena de prerrequisitos (recursivo)
@@ -215,6 +262,30 @@ static void pedirDisponibilidad(Monitor& mon) {   // Captura la disponibilidad c
     cout << "Disponibilidad del monitor: " << (nueva.empty() ? "(sin disponibilidad)" : nueva) << endl;
 }
 
+// HU-01.06: disponibilidad horaria de un estudiante (dia, inicio y fin en bloques de 30 min)
+static void pedirDisponibilidadEstudiante(Estudiante& est) {
+    string actual = est.disponibilidadTexto();
+    cout << "Disponibilidad actual: " << (actual.empty() ? "(sin disponibilidad)" : actual) << endl;
+    while (true) {
+        int dia = leerRango("Dia de la franja (1=Lunes ... 6=Sabado, 0 para terminar): ", 0, 6);
+        if (dia == 0) break;
+        int hIni = leerRango("Hora de inicio, formato 24h (6-19): ", HORA_INICIO_DIA, 19);
+        int mIni = leerRango("Minutos de inicio (0 o 30): ", 0, 30);
+        int hFin = leerRango("Hora de fin, formato 24h (6-20): ", HORA_INICIO_DIA, 20);
+        int mFin = leerRango("Minutos de fin (0 o 30): ", 0, 30);
+        if ((mIni != 0 && mIni != 30) || (mFin != 0 && mFin != 30)) { cout << "Los minutos deben ser 0 o 30." << endl; continue; }
+        int inicio = (hIni - HORA_INICIO_DIA) * 2 + (mIni == 30 ? 1 : 0);
+        int fin = (hFin - HORA_INICIO_DIA) * 2 + (mFin == 30 ? 1 : 0);
+        if (!est.agregarFranjaEstudiante(dia - 1, inicio, fin)) {   // valida orden, rango y cruces
+            cout << "Franja invalida (fin antes del inicio, fuera de 6:00 AM - 8:00 PM o cruzada con otra)." << endl;
+            continue;
+        }
+        cout << "Franja agregada: " << nombreDia(dia - 1) << " " << formatoHora(inicio) << " - " << formatoHora(fin) << endl;
+    }
+    string nueva = est.disponibilidadTexto();
+    cout << "Disponibilidad del estudiante: " << (nueva.empty() ? "(sin disponibilidad)" : nueva) << endl;
+}
+
 // Pide las materias iniciales de un monitor recien registrado (no quedan en la pila de deshacer)
 static void pedirMateriasMonitor(Monitor& mon, const vector<Materia>& materias) {
     while (true) {
@@ -256,6 +327,81 @@ static void revertirAsignacion(PilaAsignaciones& historial, vector<Solicitud>& s
         return;
     }
     deshacerMateriaElegida(*mon, opciones[eleccion - 1], solicitudes, historial, bitacora);   // Revierte solo la materia elegida
+}
+
+// Pide un codigo de estudiante (o de un monitor como estudiante) y lo devuelve, o nullptr.
+// TODO [dependencia compañero HU-04]: cambiar el recorrido lineal por la tabla hash propia.
+static Estudiante* pedirEstudiantePorCodigo(const vector<Usuario*>& usuarios) {
+    long codigo = leerRango("Codigo del estudiante: ", 1, numeric_limits<int>::max());
+    Estudiante* estudiante = buscarEstudiantePorCodigo(usuarios, codigo);
+    if (estudiante == nullptr) cout << "No se encontro un estudiante con codigo " << codigo << "." << endl;
+    return estudiante;
+}
+
+// HU-32.03 / HU-32.05: estados de un estudiante; cada reprobada o retirada consulta el grafo
+static void mostrarEstadosEstudiante(const Estudiante& est, const vector<Materia>& materias) {
+    const vector<EstadoMateria>& estados = est.getEstadosMaterias();
+    cout << "Estados de " << est.getNombres() << " " << est.getApellidos() << " (codigo " << est.getCodigoEstudiante() << ")" << endl;
+    if (estados.empty()) { cout << "  No tiene estados registrados." << endl; return; }
+    for (size_t i = 0; i < estados.size(); i++)
+        cout << "  " << estados[i].codigoMateria << ": " << estados[i].estado << endl;
+    GrafoPrerrequisitos grafo(materias);
+    for (size_t i = 0; i < estados.size(); i++) {
+        if (estados[i].estado == "Aprobada") continue;
+        cout << endl;
+        grafo.mostrarMateriasAfectadas(estados[i].codigoMateria,
+                                       estados[i].estado == "Reprobada" ? "reprobar" : "retirar");
+    }
+}
+
+// Nombre de usuario de un monitor por su codigo de monitor (para la agenda)
+static string usernameMonitor(const vector<Usuario*>& usuarios, long codigoMonitor) {
+    const Monitor* monitor = buscarMonitorPorCodigo(usuarios, codigoMonitor);
+    if (monitor == nullptr) return "monitor " + to_string(codigoMonitor);
+    return monitor->getUsername();
+}
+
+// HU-18: agenda semanal de las sesiones asignadas, por dia y hora, verificando cruces
+static void mostrarAgendaSemanal(const vector<Solicitud>& solicitudes, const vector<Usuario*>& usuarios) {
+    vector<Solicitud> sesiones;
+    for (size_t i = 0; i < solicitudes.size(); i++)
+        if (solicitudes[i].getEstado() == "Asignada" && solicitudes[i].tieneBloque()) sesiones.push_back(solicitudes[i]);
+    if (sesiones.empty()) { cout << "No hay sesiones asignadas esta semana." << endl; return; }
+    // Insercion por (dia, hora de inicio): la agenda es pequena y casi siempre ya viene casi ordenada
+    for (size_t i = 1; i < sesiones.size(); i++) {
+        Solicitud actual = sesiones[i];
+        int j = static_cast<int>(i) - 1;
+        while (j >= 0 && (sesiones[j].getBloque().dia > actual.getBloque().dia ||
+               (sesiones[j].getBloque().dia == actual.getBloque().dia && sesiones[j].getBloque().inicio > actual.getBloque().inicio))) {
+            sesiones[j + 1] = sesiones[j];
+            j--;
+        }
+        sesiones[j + 1] = actual;
+    }
+    int diaActual = -1;
+    for (size_t i = 0; i < sesiones.size(); i++) {
+        const BloqueHorario& b = sesiones[i].getBloque();
+        if (b.dia != diaActual) { diaActual = b.dia; cout << nombreDia(diaActual) << endl; }
+        cout << "  " << formatoHora(b.inicio) << " - " << formatoHora(b.fin)
+             << " | " << sesiones[i].getCodigoMateria()
+             << " | monitor " << usernameMonitor(usuarios, sesiones[i].getCodigoMonitor())
+             << " | estudiante " << sesiones[i].getCodigoEstudiante()
+             << " | solicitud #" << sesiones[i].getId() << endl;
+    }
+    // Verificacion de que nadie tiene dos sesiones en la misma franja
+    int cruces = 0;
+    for (size_t i = 0; i < sesiones.size(); i++)
+        for (size_t j = i + 1; j < sesiones.size(); j++) {
+            const BloqueHorario& a = sesiones[i].getBloque();
+            const BloqueHorario& b = sesiones[j].getBloque();
+            if (a.dia != b.dia || a.fin <= b.inicio || b.fin <= a.inicio) continue;
+            if (sesiones[i].getCodigoMonitor() == sesiones[j].getCodigoMonitor() ||
+                sesiones[i].getCodigoEstudiante() == sesiones[j].getCodigoEstudiante()) {
+                cout << "CRUCE: solicitudes #" << sesiones[i].getId() << " y #" << sesiones[j].getId() << endl;
+                cruces++;
+            }
+        }
+    cout << (cruces == 0 ? "Agenda sin cruces de horario." : "Se encontraron cruces.") << endl;
 }
 
 // Registra un usuario nuevo de cualquier rol y lo agrega al vector
@@ -304,7 +450,10 @@ static void registrarUsuario(vector<Usuario*>& usuarios, const vector<Materia>& 
         int semestre = leerRango("Semestre (1-9): ", 1, 9);
         codigo = maxEstudiante + 1;
         if (rol == 3) {
-            nuevo = new Estudiante(nombres, apellidos, username, password, codigo, carrera, semestre);
+            Estudiante* nuevoEst = new Estudiante(nombres, apellidos, username, password, codigo, carrera, semestre);
+            cout << "--- Disponibilidad horaria del estudiante (0 para omitir) ---" << endl;
+            pedirDisponibilidadEstudiante(*nuevoEst);   
+            nuevo = nuevoEst;
         } else {
             string horario = "";
             nuevo = new Monitor(nombres, apellidos, username, password, codigo, carrera, semestre,
@@ -353,19 +502,23 @@ void menuEstudiante(Estudiante& est, vector<Materia>& materias, vector<Solicitud
         cout << "4. Ver mis solicitudes" << endl;
         cout << "5. Cancelar una solicitud pendiente" << endl;
         cout << "6. Ver horario de una materia" << endl;
+        cout << "7. Definir mi disponibilidad horaria" << endl;
         cout << "0. Cerrar sesion" << endl;
         opcion = leerOpcion();
 
         if (opcion == 1) {
             listarMaterias(materias);
 
+        } else if (opcion == 7) {  
+            pedirDisponibilidadEstudiante(est);
+
         } else if (opcion == 2) {
-            for (int i = 0; i < materias.size(); i++) materias[i].mostrarCodigo();
+            for (size_t i = 0; i < materias.size(); i++) materias[i].mostrarCodigo();
             verPrerrequisitos(materias);
 
         } else if (opcion == 3) {
             string codigoMateria, descripcion;
-            for (int i = 0; i < materias.size(); i++) materias[i].mostrarCodigo();
+            for (size_t i = 0; i < materias.size(); i++) materias[i].mostrarCodigo();
             cout << "Codigo de la materia: ";
             cin >> codigoMateria;
             long c = 0;
@@ -373,23 +526,37 @@ void menuEstudiante(Estudiante& est, vector<Materia>& materias, vector<Solicitud
                 cout << "La materia no existe." << endl;
                 continue;
             }
-            //AGREGADO TEMPORALMENTE PARA PRUEBAS!!!!!!!
-            int urgencia = leerRango("Urgencia (1 = baja, 2 = media, 3 = alta): ", 1, 3);
+            // Una sola solicitud pendiente por estudiante y materia
+            bool duplicada = false;
+            for (size_t i = 0; i < solicitudes.size() && !duplicada; i++) {
+                duplicada = solicitudes[i].getCodigoEstudiante() == est.getCodigoEstudiante() &&
+                            solicitudes[i].getCodigoMateria() == codigoMateria &&
+                            solicitudes[i].getEstado() == "Pendiente";
+            }
+            if (duplicada) {
+                cout << "Ya tienes una solicitud pendiente en " << codigoMateria << ". Espera a que se atienda o cancelala." << endl;
+                continue;
+            }
+            // La urgencia ya no la elige el estudiante: se calcula con los 3 criterios
+            // (semestre, dependencia en el grafo de prerrequisitos y antiguedad).
+            // int urgencia = leerRango("Urgencia (1 = baja, 2 = media, 3 = alta): ", 1, 3);
 
             cout << "Describe en que necesitas ayuda: ";
             cin >> ws;
             getline(cin, descripcion);
 
             contadorSolicitudes++;
-            solicitudes.push_back(Solicitud(contadorSolicitudes, est.getCodigoEstudiante(),
-                                            codigoMateria, urgencia, descripcion));
-            cola.encolar(contadorSolicitudes, urgencia);
+            Solicitud nueva(contadorSolicitudes, est.getCodigoEstudiante(), codigoMateria, URGENCIA_BAJA, descripcion);
+            GrafoPrerrequisitos grafo(materias);
+            nueva.setPrioridad(calcularPrioridad(est.getSemestre(), codigoMateria, nueva.getFechaCreacion(), grafo));
+            solicitudes.push_back(nueva);
+            cola.encolar(contadorSolicitudes, nueva.getPrioridad());
             cout << "Solicitud #" << contadorSolicitudes << " creada. Posicion de la cola: "
                  << cola.tamano() << " pendientes en total." << endl;
 
         } else if (opcion == 4) {
             bool hay = false;
-            for (int i = 0; i < solicitudes.size(); i++) {
+            for (size_t i = 0; i < solicitudes.size(); i++) {
                 if (solicitudes[i].getCodigoEstudiante() == est.getCodigoEstudiante()) {
                     solicitudes[i].mostrarInfo();
                     hay = true;
@@ -432,12 +599,12 @@ void menuMonitor(Monitor& mon, vector<Solicitud>& solicitudes, ColaSolicitudes& 
 
         if (opcion == 1) {
             if (solicitudes.empty()) cout << "No hay solicitudes registradas." << endl;
-            for (int i = 0; i < solicitudes.size(); i++) solicitudes[i].mostrarInfo();
+            for (size_t i = 0; i < solicitudes.size(); i++) solicitudes[i].mostrarInfo();
 
         } else if (opcion == 2) {
             const vector<ItemCola>& items = cola.getElementos();
             if (items.empty()) cout << "No hay solicitudes pendientes." << endl;
-            for (int i = 0; i < items.size(); i++) {
+            for (size_t i = 0; i < items.size(); i++) {
                 int pos = buscarSolicitudSecuencial(solicitudes, items[i].id);
                 cout << (i + 1) << ". ";
                 if (pos != -1) solicitudes[pos].mostrarInfo();
@@ -456,7 +623,6 @@ void menuMonitor(Monitor& mon, vector<Solicitud>& solicitudes, ColaSolicitudes& 
             }
 
         } else if (opcion == 4) {
-            // NUEVO: el monitor termina la solicitud que le asigno el administrador
             int id = mon.getSolicitudActual();
             int pos = (id == 0) ? -1 : buscarSolicitudSecuencial(solicitudes, id);
             if (pos == -1) {
@@ -506,7 +672,7 @@ void menuProfesor(Profesor& prof, vector<Materia>& materias, vector<Solicitud>& 
                 continue;
             }
             bool hay = false;
-            for (int i = 0; i < solicitudes.size(); i++) {
+            for (size_t i = 0; i < solicitudes.size(); i++) {
                 if (solicitudes[i].getCodigoMateria() == codigo) {
                     solicitudes[i].mostrarInfo();
                     hay = true;
@@ -555,6 +721,18 @@ void menuAdministrador(Administrador& admin, vector<Materia>& materias, vector<S
         cout << "12. Ver horario de una materia" << endl;
         cout << "13. Ver materias de un monitor" << endl;
         cout << "14. Definir disponibilidad de un monitor" << endl;
+        cout << "15. Ver jerarquia de materias (area -> nivel -> materia)" << endl;
+        // cout << "16. Consultar todo lo que cuelga de un area" << endl;   // (Julian)
+        cout << "17. Cambiar area y nivel de una materia" << endl;
+        cout << "18. Ver red de prerrequisitos (grafo)" << endl;
+        cout << "19. Materias afectadas si se reprueba una materia" << endl;
+        cout << "20. Recalcular prioridades y ver cola de atencion" << endl;
+        cout << "21. Emparejar solicitud con un monitor disponible (automatico)" << endl;
+        cout << "22. Reasignar una solicitud a otro monitor" << endl;
+        cout << "23. Registrar estado de una materia de un estudiante" << endl;
+        cout << "24. Consultar estados y materias afectadas de un estudiante" << endl;
+        cout << "25. Ver agenda semanal de sesiones" << endl;
+        cout << "26. Definir disponibilidad de un estudiante" << endl;
         cout << "0. Cerrar sesion" << endl;
         opcion = leerOpcion();
 
@@ -566,8 +744,8 @@ void menuAdministrador(Administrador& admin, vector<Materia>& materias, vector<S
             cout << "Nombre: ";
             cin >> ws;
             getline(cin, nombre);
-            if (nombre.empty()) {
-                cout << "El nombre no puede estar vacio." << endl;
+            if (nombre.size() < 3 || nombre.find(',') != string::npos) {   
+                cout << "El nombre debe tener al menos 3 caracteres y no llevar comas." << endl;
                 continue;
             }
             int creditos = leerRango("Creditos (1-5): ", 1, 5);
@@ -575,7 +753,7 @@ void menuAdministrador(Administrador& admin, vector<Materia>& materias, vector<S
             vector<string> previos;
             //Asignación de prerequisitos
             if (!materias.empty()) {
-                    for (int i = 0; i < materias.size(); i++) materias[i].mostrarInfo();
+                    for (size_t i = 0; i < materias.size(); i++) materias[i].mostrarInfo();
                     while (true) {
                         string codigoPre;
                         cout << "Codigo de un prerrequisito (0 para terminar): ";
@@ -591,6 +769,9 @@ void menuAdministrador(Administrador& admin, vector<Materia>& materias, vector<S
 
             string codigo = generarCodigoMateria(nombre, materias);
             Materia nueva(codigo, nombre, creditos, tipo, previos);
+            // Ubicacion en la jerarquia area -> nivel
+            nueva.setArea(leerTexto("Area de la materia (p. ej. Matematicas): "));
+            nueva.setNivel(leerRango("Nivel dentro del area (1-10): ", 1, 10));
             cout << "--- Horario de la materia ---" << endl;
             pedirHorario(nueva);
             materias.push_back(nueva);
@@ -614,7 +795,7 @@ void menuAdministrador(Administrador& admin, vector<Materia>& materias, vector<S
 
         } else if (opcion == 5) {
             if (solicitudes.empty()) cout << "No hay solicitudes registradas." << endl;
-            for (int i = 0; i < solicitudes.size(); i++) solicitudes[i].mostrarInfo();
+            for (size_t i = 0; i < solicitudes.size(); i++) solicitudes[i].mostrarInfo();
 
         } else if (opcion == 6) {
             string username, codigo;
@@ -634,10 +815,18 @@ void menuAdministrador(Administrador& admin, vector<Materia>& materias, vector<S
             cout << "Codigo de la materia: ";
             cin >> codigo;
             long c = 0;
-            if (buscarMateriaBinaria(materias, codigo, c) == -1) {
+            int posMat = buscarMateriaBinaria(materias, codigo, c);
+            if (posMat == -1) {
                 cout << "La materia no existe." << endl;
                 continue;
             }
+            if (!mon->getDisponibilidad().empty() && franjasLibresDeClase(*mon, materias[posMat]) < DURACION_SESION) {
+                cout << "Cruce de horario: toda la disponibilidad del monitor coincide con la clase de "
+                     << codigo << " (los estudiantes estan en clase). No se asigno." << endl;
+                continue;
+            }
+            if (mon->getDisponibilidad().empty())
+                cout << "Aviso: el monitor no tiene disponibilidad registrada; no podra recibir solicitudes hasta definirla." << endl;
             //Ahora tambien recibe la bitacora
             asignarMateriaAMonitor(*mon, codigo, historial, bitacora);
 
@@ -664,7 +853,7 @@ void menuAdministrador(Administrador& admin, vector<Materia>& materias, vector<S
                 continue;
             }
             int id = leerRango("Id de la solicitud pendiente: ", 1, numeric_limits<int>::max());
-            asignarSolicitudAMonitor(*mon, id, solicitudes, cola, historial, bitacora);
+            asignarSolicitudAMonitor(*mon, id, solicitudes, cola, historial, bitacora, usuarios, materias);
 
         } else if (opcion == 10) {
             // NUEVO: ver el registro de asignaciones y reversiones
@@ -684,6 +873,78 @@ void menuAdministrador(Administrador& admin, vector<Materia>& materias, vector<S
             Monitor* mon = buscarMonitorPorUsername(usuarios); 
             
             if (mon) pedirDisponibilidad(*mon);
+
+        } else if (opcion == 15) {           
+            JerarquiaMaterias jerarquia(materias);
+            jerarquia.mostrar();
+
+        // TODO : opcion 16, consultar todo lo que cuelga de un area.
+        // La jerarquia ya la deja lista: JerarquiaMaterias(materias) y recorrer el nodo del area.
+
+        } else if (opcion == 17) {
+            string codigo;
+            cout << "Codigo de la materia: ";
+            cin >> codigo;
+            long c = 0;
+            int pos = buscarMateriaBinaria(materias, codigo, c);
+            if (pos == -1) { cout << "La materia no existe." << endl; continue; }
+            cout << "Actual: " << materias[pos].getArea() << " nivel " << materias[pos].getNivel() << endl;
+            materias[pos].setArea(leerTexto("Nueva area: "));
+            materias[pos].setNivel(leerRango("Nuevo nivel (1-10): ", 1, 10));
+            cout << "Materia ubicada en " << materias[pos].getArea() << " / nivel " << materias[pos].getNivel() << endl;
+
+        } else if (opcion == 18) {
+            GrafoPrerrequisitos grafo(materias);
+            grafo.mostrarRed();
+
+        } else if (opcion == 19) {           // RF-08
+            for (size_t i = 0; i < materias.size(); i++) materias[i].mostrarCodigo();
+            string codigo;
+            cout << "Codigo de la materia: ";
+            cin >> codigo;
+            string motivo = (leerRango("Motivo (1 = reprobar, 2 = retirar): ", 1, 2) == 1) ? "reprobar" : "retirar";
+            GrafoPrerrequisitos grafo(materias);
+            grafo.mostrarMateriasAfectadas(codigo, motivo);
+
+        } else if (opcion == 20) {
+            recalcularPrioridades(solicitudes, usuarios, materias, cola);
+            verColaPrioridades(solicitudes, usuarios, materias, cola);
+
+        } else if (opcion == 21) {           
+            int id = leerRango("Id de la solicitud (0 = la siguiente de la cola): ", 0, numeric_limits<int>::max());
+            if (id == 0) id = cola.frente();
+            if (id == -1) cout << "No hay solicitudes pendientes." << endl;
+            else emparejarSolicitud(id, solicitudes, cola, historial, bitacora, usuarios, materias);
+
+        } else if (opcion == 22) {           
+            int id = leerRango("Id de la solicitud asignada: ", 1, numeric_limits<int>::max());
+            Monitor* nuevo = buscarMonitorPorUsername(usuarios);
+            if (nuevo) reasignarSolicitud(id, *nuevo, solicitudes, historial, bitacora, usuarios, materias);
+
+        } else if (opcion == 23) {           
+            Estudiante* est = pedirEstudiantePorCodigo(usuarios);
+            if (!est) continue;
+            string codigo;
+            cout << "Codigo de la materia: ";
+            cin >> codigo;
+            long c = 0;
+            if (buscarMateriaBinaria(materias, codigo, c) == -1) { cout << "La materia no existe. No se registro." << endl; continue; }
+            int e = leerRango("Estado (1 = Aprobada, 2 = Reprobada, 3 = Retirada): ", 1, 3);
+            string estado = (e == 1) ? "Aprobada" : (e == 2) ? "Reprobada" : "Retirada";
+            est->registrarEstadoMateria(codigo, estado);
+            cout << "Registrado: " << codigo << " " << estado << " para " << est->getNombres() << "." << endl;
+
+        } else if (opcion == 24) {           
+            Estudiante* est = pedirEstudiantePorCodigo(usuarios);
+            if (est) mostrarEstadosEstudiante(*est, materias);
+
+        } else if (opcion == 25) {           
+            mostrarAgendaSemanal(solicitudes, usuarios);
+
+        } else if (opcion == 26) {
+            Estudiante* est = pedirEstudiantePorCodigo(usuarios);
+            if (est) pedirDisponibilidadEstudiante(*est);
+
         } else if (opcion != 0) {
             cout << "Opcion invalida." << endl;
         }
