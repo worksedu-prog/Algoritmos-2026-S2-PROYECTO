@@ -60,6 +60,10 @@ bool asignarSolicitudAMonitor(Monitor& mon, int idSolicitud, vector<Solicitud>& 
         cout << "Solo se pueden asignar solicitudes pendientes." << endl;
         return false;
     }
+    if (!mon.isActivo()){
+        cout << "El monitor " << mon.getUsername() << " esta inactivo. Activelo antes de asignarle solicitudes" << endl;
+        return false;
+    }
     if (!mon.dominaMateria(solicitudes[pos].getCodigoMateria())) {   //Ahora acepta cualquier materia de la lista del monitor, el mensaje y el resto del flujo no cambian
         cout << "El monitor no atiende la materia " << solicitudes[pos].getCodigoMateria() << "." << endl;
         return false;
@@ -95,6 +99,7 @@ bool asignarSolicitudAMonitor(Monitor& mon, int idSolicitud, vector<Solicitud>& 
                        " | " + nombreDia(bloque.dia) + " " + formatoHora(bloque.inicio) + " - " + formatoHora(bloque.fin));
     cout << "Solicitud #" << idSolicitud << " asignada a " << mon.getNombres() << " para el "
          << nombreDia(bloque.dia) << " " << formatoHora(bloque.inicio) << " - " << formatoHora(bloque.fin) << "." << endl;
+    cout << "Sesion creada: " << textoSesion(crearSesion(solicitudes[pos])) << endl;   // (Nuevo: HU-33, la sesion se crea al emparejar)
     return true;
 }
 
@@ -139,10 +144,15 @@ void deshacerAsignacion(PilaAsignaciones& historial, vector<Solicitud>& solicitu
     cola.encolar(solicitudes[pos].getId(), solicitudes[pos].getPrioridad());   // vuelve a la cola con su prioridad
     mon->setSolicitudActual(0);                                              // libera la franja
 
+    bool teniaSesion = solicitudes[pos].tieneBloque();   // (Nuevo: HU-33)
+    string sesionEliminada = teniaSesion ? textoSesion(crearSesion(solicitudes[pos])) : "";
+    solicitudes[pos].limpiarSesion();   // HU-33, quita monitor y bloque; no queda una sesion huerfana que bloquee la franja
+
     bitacora.registrar("REVERSION de la asignacion de la solicitud #" + to_string(ultima.idSolicitud) +
                        " al monitor " + mon->getUsername());
     cout << "Se deshizo la asignacion de la solicitud #" << ultima.idSolicitud
          << ". Vuelve a la cola como pendiente y " << mon->getNombres() << " queda libre." << endl;
+    if (teniaSesion) cout << "Sesion eliminada: " << sesionEliminada << endl;
 }
 
 bool deshacerMateriaElegida(Monitor& mon, const string& codigoMateria, vector<Solicitud>& solicitudes,
@@ -269,6 +279,10 @@ bool reasignarSolicitud(int idSolicitud, Monitor& nuevo, vector<Solicitud>& soli
     }
     Monitor* anterior = buscarMonitorConSolicitud(usuarios, idSolicitud);
     if (anterior == &nuevo) { cout << "La solicitud ya esta asignada a ese monitor." << endl; return false; }
+    if (!nuevo.isActivo()){
+        cout << "El nuevo monitor esta inactivo. No se reasigno." << endl;
+        return false;
+    }
     // El nuevo monitor domina la materia, esta libre y tiene horario compatible
     if (!nuevo.dominaMateria(solicitudes[pos].getCodigoMateria())) {
         cout << "El nuevo monitor no atiende la materia " << solicitudes[pos].getCodigoMateria() << "." << endl;
@@ -303,4 +317,44 @@ int franjasLibresDeClase(const Monitor& mon, const Materia& materia) {
         for (int k = franjas[f].inicio; k < franjas[f].fin; k++)
             if (!materia.franjaOcupada(franjas[f].dia, k)) libres++;
     return libres;
+}
+
+// Libera la solicitud asignada a un monitor y la devuelve a la cola de pendientes
+bool liberarSolicitudDeMonitor(Monitor& mon, vector<Solicitud>& solicitudes, ColaSolicitudes& cola,
+                               PilaAsignaciones& historial, BitacoraAsignaciones& bitacora, const string& motivo) {
+    if (mon.estaLibre()) return false;                          // no tiene nada asignado
+    int id = mon.getSolicitudActual();
+    mon.setSolicitudActual(0);                                  // la franja del monitor queda libre
+    int pos = buscarSolicitudSecuencial(solicitudes, id);
+    if (pos == -1 || solicitudes[pos].getEstado() != "Asignada") return false;   // dato inconsistente: solo se libera al monitor
+
+    solicitudes[pos].setEstado("Pendiente");                    // vuelve a ser pendiente sin perder sus datos
+    solicitudes[pos].limpiarSesion();                           // ya no hay monitor ni bloque de sesion
+    cola.encolar(solicitudes[pos].getId(), solicitudes[pos].getPrioridad());   // recupera su lugar por prioridad y antiguedad
+    historial.eliminarSolicitud(id);                            // la pila ya no debe referenciarla
+    bitacora.registrar("REVERSION automatica de la solicitud #" + to_string(id) +
+                       " del monitor " + mon.getUsername() + " (" + motivo + ")");   // la bitacora conserva el rastro
+    cout << "La solicitud #" << id << " vuelve a la cola como pendiente y "
+         << mon.getNombres() << " queda libre." << endl;
+    return true;
+}
+
+// HU-33 Arma la sesion a partir de los datos de la solicitud asignada
+Sesion crearSesion(const Solicitud& solicitud) {
+    Sesion sesion; 
+    sesion.idSolicitud = solicitud.getId(); 
+    sesion.codigoMonitor = solicitud.getCodigoMonitor();
+    sesion.codigoEstudiante = solicitud.getCodigoEstudiante();
+    sesion.codigoMateria = solicitud.getCodigoMateria();
+    sesion.bloque = solicitud.getBloque();
+    return sesion;
+}
+
+// HU-33 Texto de una sesion para mostrarla en consola
+string textoSesion(const Sesion& sesion) {
+    return "solicitud #" + to_string(sesion.idSolicitud) + " | materia " + sesion.codigoMateria +
+           " | monitor (codigo " + to_string(sesion.codigoMonitor) + ")" +
+           " | estudiante (codigo " + to_string(sesion.codigoEstudiante) + ")" +
+           " | " + nombreDia(sesion.bloque.dia) + " " + formatoHora(sesion.bloque.inicio) +
+           " - " + formatoHora(sesion.bloque.fin);
 }

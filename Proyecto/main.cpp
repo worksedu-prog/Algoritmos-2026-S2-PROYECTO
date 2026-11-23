@@ -55,9 +55,22 @@ int main() {
             solicitudes[i].setEstado("Pendiente");
             bitacora.registrar("REVERSION automatica de la solicitud #" + to_string(solicitudes[i].getId()) + " al reiniciar el programa (no habia una asignacion guardada valida)");
         }
+
+        if (solicitudes[i].getEstado() == "Asignada" && solicitudes[i].tieneBloque()) {
+            Monitor* asignado = buscarMonitorPorCodigo(usuarios, solicitudes[i].getCodigoMonitor());
+            if (asignado != nullptr && !asignado->isActivo()) {
+                solicitudes[i].setEstado("Pendiente");
+                solicitudes[i].limpiarSesion(); 
+                asignado->setSolicitudActual(0);
+                bitacora.registrar("REVERSION automatica de la solicitud #" + to_string(solicitudes[i].getId()) +
+                                   " al reiniciar el programa (el monitor " + asignado->getUsername() + " esta inactivo)");
+            }
+        }
     }
     // La cola se arma con la prioridad de 3 criterios (semestre, grafo de prerrequisitos, antiguedad)
     recalcularPrioridades(solicitudes, usuarios, materias, cola);
+
+    configurarGuardado(gestorArchivos, usuarios, materias, solicitudes, bitacora);
 
     // Se muestra el menú informativo para pruebas
     menuPruebas();

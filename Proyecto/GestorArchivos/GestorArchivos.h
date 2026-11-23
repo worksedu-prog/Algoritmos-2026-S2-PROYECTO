@@ -9,6 +9,10 @@
 //                   (las lineas antiguas sin FechaCreacion se siguen leyendo)
 //   Estudiante agrega al final: ...,CodigoEstudiante,Carrera,Semestre,Franjas
 //   Monitor agrega al final: ...,CodigoMonitor,Horario,Materias(separadas por ;),Reservada(vacia),Franjas(dia@inicio-fin separadas por |)
+//   Estudiante agrega al final: ...,CodigoEstudiante,Carrera,Semestre,Franjas
+//   Estudiante agrega al final: ...,CodigoEstudiante,Carrera,Semestre,Franjas
+//   Profesor agrega al final: ...,Departamento,CodigoProfesor,Area   // (Nuevo: HU-34, las dos ultimas columnas son opcionales)
+
 
 #ifndef GESTORARCHIVOS_H
 #define GESTORARCHIVOS_H

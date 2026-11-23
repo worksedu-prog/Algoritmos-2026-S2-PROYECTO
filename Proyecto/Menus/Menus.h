@@ -10,6 +10,7 @@
 #include "../Asignaciones/Asignaciones.h" 
 #include "../Grafo/Grafo.h"
 #include "../Jerarquia/Jerarquia.h"
+#include "../GestorArchivos/GestorArchivos.h"
 
 using namespace std;
 
@@ -17,6 +18,12 @@ using namespace std;
 // Se usa al iniciar el programa y desde el menu del administrador.
 void recalcularPrioridades(vector<Solicitud>& solicitudes, const vector<Usuario*>& usuarios,
                            const vector<Materia>& materias, ColaSolicitudes& cola);
+
+//Main.cpp llama a esta funcion una vez, despues de cargar los datos.
+// Desde ahi, cada menu guarda usuarios, materias, solicitudes, bitacora, estados y asignaciones
+// al terminar cada accion, y no solo al salir del programa.
+void configurarGuardado(GestorArchivos& gestor, vector<Usuario*>& usuarios, vector<Materia>& materias,
+                        vector<Solicitud>& solicitudes, BitacoraAsignaciones& bitacora);
 
 void menuPruebas();
 void menuGeneral();

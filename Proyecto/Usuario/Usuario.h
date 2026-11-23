@@ -110,14 +110,43 @@ public:
 class Profesor : public Usuario {
 private:
     string departamento;
+    long codigoProfesor;   
+    string area;           
 
 public:
     Profesor();
     Profesor(string nombres, string apellidos, string username, string password,
              string departamento);
+    Profesor(string nombres, string apellidos, string username, string password,
+             string departamento, long codigoProfesor, string area);   // (Nuevo: HU-34, constructor con codigo y area)
 
     string getDepartamento() const;
     void setDepartamento(const string& departamento);
+    long getCodigoProfesor() const { return codigoProfesor; }
+    void setCodigoProfesor(long codigo) { codigoProfesor = codigo; }
+    string getArea() const { return area; }
+    void setArea(const string& a) { area = a.empty() ? "General" : a; }
+};
+
+class TablaHashUsuarios {
+private:
+    struct Entrada {                                   // Clave -> Usuario
+        long clave;
+        Usuario* usuario;
+    };
+    static constexpr size_t CAPACIDAD_INICIAL = 101;   // Numero primo de cubetas iniciales
+    vector< vector<Entrada> > cubetas;
+    int cantidad; 
+    static size_t indiceDe(long clave, size_t numCubetas);   // Funcion hash
+    void redimensionar();                              // Duplica las cubetas y reubica todo
+
+public:
+    TablaHashUsuarios();
+    bool insertar(long clave, Usuario* usuario);
+    Usuario* buscar(long clave, long& comparaciones) const;
+    int tamano() const { return cantidad; }
+    size_t capacidad() const { return cubetas.size(); }
+    void vaciar();
 };
 
 // Busquedas sobre la lista de usuarios

@@ -60,6 +60,11 @@ public:
         for (size_t i = 0; i < elementos.size(); i++)
             if (elementos[i].idSolicitud == idSolicitud) elementos[i].monitor = nuevo;
     }
+
+    void eliminarSolicitud(int idSolicitud){
+        for (int i = static_cast<int>(elementos.size()) - 1; i >= 0; i --)
+            if (elementos[i].idSolicitud == idSolicitud) elementos.erase(elementos.begin() + i);
+    }
 };
 
 
@@ -82,6 +87,20 @@ void asignarMateriaAMonitor(Monitor& mon, const string& codigoMateria,
 
 // Duracion de una sesion de monitoria: 2 franjas de 30 min = 1 hora
 const int DURACION_SESION = 2;
+
+// HU-33 Sesion de acompanamiento: monitor, estudiante, materia y bloque (dia, inicio, fin).
+// Es una VISTA de la solicitud asignada: los datos viven en Solicitud (setSesion) y se guardan en
+// data/asignaciones.txt, asi hay una sola fuente de verdad y no se desincroniza al reasignar o revertir.
+struct Sesion {
+    int idSolicitud; 
+    long codigoMonitor;
+    long codigoEstudiante;
+    string codigoMateria;
+    BloqueHorario bloque;
+};
+
+Sesion crearSesion(const Solicitud& solicitud);
+string textoSesion(const Sesion& sesion);         // "solicitud #1 | materia ... | Lunes 2:00 PM - 3:00 PM")
 
 // HU-09.03: busca el primer bloque de DURACION_SESION que
 //   - cabe en la disponibilidad del monitor,
@@ -119,6 +138,9 @@ int franjasLibresDeClase(const Monitor& mon, const Materia& materia);
 // Desapila la ultima asignacion y la revierte:
 //  - de materia: restaura la materia anterior del monitor
 //  - de solicitud: la solicitud vuelve a la cola como "Pendiente" y se libera la franja del monitor
+bool liberarSolicitudDeMonitor(Monitor& mon, vector<Solicitud>& solicitudes, ColaSolicitudes& cola,
+                               PilaAsignaciones& historial, BitacoraAsignaciones& bitacora, const string& motivo);
+
 void deshacerAsignacion(PilaAsignaciones& historial, vector<Solicitud>& solicitudes,
                         ColaSolicitudes& cola, BitacoraAsignaciones& bitacora);
 

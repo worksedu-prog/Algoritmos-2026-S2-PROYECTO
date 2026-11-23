@@ -109,7 +109,10 @@ bool GestorArchivos::cargarUsuarios(vector<Usuario*>& usuarios) {
             if (p.size() >= 10) textoAFranjasEstudiante(p[9], *e);    // HU-01.06
             u = e;
         } else if (p[0] == "Profesor") {
-            u = new Profesor(p[1], p[2], p[3], p[4], p[6]);
+            Profesor* pr = new Profesor(p[1], p[2], p[3], p[4], p[6]);
+            if (p.size() >= 8) pr->setCodigoProfesor(aLong(p[7]));
+            if (p.size() >= 9) pr->setArea(p[8]);
+            u = pr;
         } else if (p[0] == "Monitor" && p.size() >= 11) {
             Monitor* m = new Monitor(p[1], p[2], p[3], p[4], aLong(p[6]), p[7], aInt(p[8]), aLong(p[9]), p[10]);
             for (size_t col = 11; col <= 12 && col < p.size(); col++) {
@@ -125,9 +128,20 @@ bool GestorArchivos::cargarUsuarios(vector<Usuario*>& usuarios) {
             u->setActivo(activo);
             usuarios.push_back(u);
         }
-    } 
+    }
+
+    long maxProfesor = 0;
+    for (size_t i = 0; i < usuarios.size(); i++){
+        const Profesor* pr = dynamic_cast <const Profesor*>(usuarios[i]);
+        if (pr != nullptr && pr->getCodigoProfesor() > maxProfesor) maxProfesor = pr->getCodigoProfesor();
+    }
+    for (size_t i = 0; i < usuarios.size(); i++){
+        Profesor* pr = dynamic_cast<Profesor*>(usuarios[i]);
+        if (pr != nullptr && pr ->getCodigoProfesor() == 0) pr->setCodigoProfesor(++maxProfesor);
+    }
     return true;
 }
+
 bool GestorArchivos::guardarUsuarios(const vector<Usuario*>& usuarios) {
     ofstream archivo(resolverRuta(rutaUsuarios));
     if (!archivo.is_open()) return false;
@@ -147,7 +161,8 @@ bool GestorArchivos::guardarUsuarios(const vector<Usuario*>& usuarios) {
             archivo << "," << e->getCodigoEstudiante() << "," << e->getCarrera() << "," << e->getSemestre()
                     << "," << franjasEstudianteATexto(*e);
         } else if (const Profesor* pr = dynamic_cast<const Profesor*>(u)) {
-            archivo << "," << pr->getDepartamento();
+            archivo << "," << pr->getDepartamento()
+                    << "," << pr->getCodigoProfesor() << "," << pr->getArea();
         } else if (const Administrador* a = dynamic_cast<const Administrador*>(u)) {
             archivo << "," << a->getCodigoAdministrador();
         }

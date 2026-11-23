@@ -23,12 +23,17 @@ Administrador::Administrador(string nombres, string apellidos, string username, 
     : Usuario(nombres, apellidos, username, password, "Administrador"),
       codigoAdministrador(codigo) {}
 
-Profesor::Profesor() : Usuario() {
+Profesor::Profesor() : Usuario(), codigoProfesor(0), area("General") {
     rol = "Profesor";
 }
 
 Profesor::Profesor(string nombres, string apellidos, string username, string password, string departamento)
-    : Usuario(nombres, apellidos, username, password, "Profesor"), departamento(departamento) {}
+    : Usuario(nombres, apellidos, username, password, "Profesor"), departamento(departamento), codigoProfesor(0), area("General") {}
+
+Profesor::Profesor(string nombres, string apellidos, string username, string password, string departamento,
+                   long codigoProfesor, string area)
+    : Usuario(nombres, apellidos, username, password, "Profesor"), departamento(departamento),
+      codigoProfesor(codigoProfesor), area(area.empty() ? "General" : area) {}
 
 string Profesor::getDepartamento() const { return departamento; }
 void Profesor::setDepartamento(const string& dep) { departamento = dep; }
@@ -158,4 +163,57 @@ Monitor* buscarMonitorConSolicitud(const vector<Usuario*>& usuarios, int idSolic
         if (monitor->getSolicitudActual() == idSolicitud) return monitor;
     }
     return nullptr;
+}
+
+TablaHashUsuarios::TablaHashUsuarios() : cubetas(CAPACIDAD_INICIAL), cantidad(0) {}
+
+// Funcion hash. Mezcla los bits de la clave y la reduce al numero de cubetas.
+//  Se convierte a unsigned para que un codigo negativo (dato danado) tampoco rompa el indice.
+size_t TablaHashUsuarios::indiceDe(long clave, size_t numCubetas) {
+    unsigned long h = static_cast<unsigned long>(clave);
+    h ^= (h >> 16);
+    h *= 2654435761UL;                                     // Multiplicador de Knuth
+    h ^= (h >> 15); 
+    return static_cast<size_t>(h % numCubetas);
+}
+
+// Duplica las cubetas y reubica cada entrada con la nueva capacidad)
+void TablaHashUsuarios::redimensionar() {
+    size_t nuevoTamano = cubetas.size() * 2 + 1;
+    vector< vector<Entrada> > nuevas(nuevoTamano);
+    for (size_t i = 0; i < cubetas.size(); i++) {
+        for (size_t k = 0; k < cubetas[i].size(); k++) {
+            nuevas[indiceDe(cubetas[i][k].clave, nuevoTamano)].push_back(cubetas[i][k]);
+        }
+    }
+    cubetas.swap(nuevas);
+}
+
+// Inserta O(1) promedio. Si la clave ya existe NO reemplaza: conserva el primero
+bool TablaHashUsuarios::insertar(long clave, Usuario* usuario) {
+    if (usuario == nullptr) return false;
+    if ((cantidad + 1) * 4 > static_cast<int>(cubetas.size()) * 3) redimensionar();
+    vector<Entrada>& cubeta = cubetas[indiceDe(clave, cubetas.size())];
+    for (size_t i = 0; i < cubeta.size(); i++) {
+        if (cubeta[i].clave == clave) return false;
+    }
+    cubeta.push_back(Entrada{clave, usuario});
+    cantidad++;
+    return true;
+}
+
+//Busqueda O(1) promedio. Solo recorre la cubeta que le toca a la clave, nunca toda la coleccion
+Usuario* TablaHashUsuarios::buscar(long clave, long& comparaciones) const {
+    const vector<Entrada>& cubeta = cubetas[indiceDe(clave, cubetas.size())];
+    for (size_t i = 0; i < cubeta.size(); i++) {
+        comparaciones++;
+        if (cubeta[i].clave == clave) return cubeta[i].usuario;
+    }
+    return nullptr;
+}
+
+void TablaHashUsuarios::vaciar() {
+    cubetas.clear();
+    cubetas.resize(CAPACIDAD_INICIAL);
+    cantidad = 0;
 }

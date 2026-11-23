@@ -124,8 +124,23 @@ public:
 enum CriterioSolicitud { SOL_POR_URGENCIA = 1, SOL_POR_ANTIGUEDAD = 2, SOL_POR_MATERIA = 3 };
 
 // Devuelve la posicion encontrada o -1
+// Devuelve la posicion encontrada o -1
 int buscarSolicitudSecuencial(const vector<Solicitud>& solicitudes, int id);
 
 long ordenarSolicitudes(vector<Solicitud>& v, int criterio);
+
+// HU-19: COBERTURA. Cuenta las solicitudes por estado.
+struct ResumenCobertura {
+    string codigoMateria;
+    int pendientes;
+    int asignadas;
+    int atendidas;
+    int canceladas;
+};
+
+ResumenCobertura resumirCobertura(const vector<Solicitud>& solicitudes); //Resumen de todas las solicitudes
+vector<ResumenCobertura> resumirCoberturaPorMateria(const vector<Solicitud>& solicitudes);   // Un resumen por materia, ordenado por codigo; solo materias con solicitudes
+// Cobertura = atendidas / (pendientes + asignadas + atendidas) x 100; las canceladas no cuentan. 0 si no hay solicitudes vigentes
+double porcentajeCobertura(const ResumenCobertura& resumen);   //Porcentaje de cobertura de un resumen)
 
 #endif

@@ -2,8 +2,10 @@
 #include "Menus.h"
 #include <iostream>
 #include <algorithm>
+#include <cctype>
 #include <limits>
 #include <ctime>
+#include <cstdio>
 
 using namespace std;
 // Lee un entero entre minimo y maximo; repite si la entrada no es valida. En fin de entrada devuelve minimo.
@@ -28,6 +30,65 @@ static int leerOpcion() {
     cin.clear();
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
     return -1;
+}
+
+//Punteros a los datos y al gestor de archivos que crea Main.cpp.
+// Se llenan una sola vez con configurarGuardado.
+struct ContextoGuardado {
+    GestorArchivos* gestor;
+    vector<Usuario*>* usuarios;
+    vector<Materia>* materias;
+    vector<Solicitud>* solicitudes;
+    BitacoraAsignaciones* bitacora;
+};
+static ContextoGuardado contextoGuardado = {nullptr, nullptr, nullptr, nullptr, nullptr};
+
+//HU-04, indices hash de usuarios. Uno por codigo de estudiante y otro por codigo de monitor,
+//  porque son espacios de codigos distintos. Los usuarios nunca se eliminan, solo se agregan.)
+static TablaHashUsuarios indiceEstudiantes;
+static TablaHashUsuarios indiceMonitores;
+
+
+static void indexarUsuario(Usuario* usuario) {
+    if (esEstudiante(usuario)) {
+        long codigo = static_cast<Estudiante*>(usuario)->getCodigoEstudiante();
+        if (!indiceEstudiantes.insertar(codigo, usuario))
+            cout << "Aviso: el codigo de estudiante " << codigo << " esta repetido (usuario "
+                 << usuario->getUsername() << "). La busqueda por codigo conserva el primero." << endl;
+    }
+    if (esMonitor(usuario)) { 
+        long codigo = static_cast<Monitor*>(usuario)->getCodigoMonitor();
+        if (!indiceMonitores.insertar(codigo, usuario))
+            cout << "Aviso: el codigo de monitor " << codigo << " esta repetido (usuario "
+                 << usuario->getUsername() << "). La busqueda por codigo conserva el primero." << endl;
+    }
+}
+
+//Reconstruye los dos indices desde cero con la lista de usuarios
+static void reconstruirIndices(const vector<Usuario*>& usuarios) {
+    indiceEstudiantes.vaciar();
+    indiceMonitores.vaciar();
+    for (size_t i = 0; i < usuarios.size(); i++) indexarUsuario(usuarios[i]);
+}
+
+void configurarGuardado(GestorArchivos& gestor, vector<Usuario*>& usuarios, vector<Materia>& materias,
+                        vector<Solicitud>& solicitudes, BitacoraAsignaciones& bitacora) {
+    contextoGuardado = ContextoGuardado{&gestor, &usuarios, &materias, &solicitudes, &bitacora};
+    reconstruirIndices(usuarios);   //HU-04, Main llama esto una vez, ya con los datos cargados)
+}
+
+// Guarda todos los archivos. Devuelve false si alguno no se pudo escribir.
+// Si Main.cpp no configuro el guardado no hay nada que guardar y devuelve true.
+static bool guardarCambios() {
+    if (contextoGuardado.gestor == nullptr) return true;
+    GestorArchivos& g = *contextoGuardado.gestor;
+    bool ok = g.guardarUsuarios(*contextoGuardado.usuarios);
+    ok = g.guardarMaterias(*contextoGuardado.materias) && ok;
+    ok = g.guardarSolicitudes(*contextoGuardado.solicitudes) && ok;
+    ok = g.guardarBitacora(*contextoGuardado.bitacora) && ok;
+    ok = g.guardarEstadosMaterias(*contextoGuardado.usuarios) && ok;
+    ok = g.guardarAsignaciones(*contextoGuardado.solicitudes) && ok;
+    return ok;
 }
 
 // Muestra las materias ordenadas con el criterio y el algoritmo que elija el usuario.
@@ -114,7 +175,7 @@ static void pedirHorario(Materia& m) {
     }
 }
 
-// NUEVO: muestra las solicitudes ordenadas por urgencia, antiguedad o materia.
+// Muestra las solicitudes ordenadas por urgencia, antiguedad o materia.
 // Ordena una COPIA: el vector original (orden de llegada) no se altera.
 static void listarSolicitudesOrdenadas(const vector<Solicitud>& solicitudes) {
     if (solicitudes.empty()) {
@@ -329,11 +390,52 @@ static void revertirAsignacion(PilaAsignaciones& historial, vector<Solicitud>& s
     deshacerMateriaElegida(*mon, opciones[eleccion - 1], solicitudes, historial, bitacora);   // Revierte solo la materia elegida
 }
 
+// HU-04, muestra la ficha de un estudiante o monitor encontrado)
+static void mostrarFichaUsuario(const Usuario* usuario) {
+    cout << "Usuario encontrado:" << endl;
+    cout << "  Nombre: " << usuario->getNombres() << " " << usuario->getApellidos() << endl;
+    cout << "  Username: " << usuario->getUsername() << " | Rol: " << usuario->getRol()
+         << " | " << (usuario->isActivo() ? "Activo" : "Inactivo") << endl;
+    if (esEstudiante(usuario)) {
+        const Estudiante* est = static_cast<const Estudiante*>(usuario);
+        string disp = est->disponibilidadTexto();
+        cout << "  Codigo de estudiante: " << est->getCodigoEstudiante() << " | Carrera: " << est->getCarrera()
+             << " | Semestre: " << est->getSemestre() << endl;
+        cout << "  Disponibilidad como estudiante: " << (disp.empty() ? "(sin disponibilidad)" : disp) << endl;
+    }
+    if (esMonitor(usuario)) {
+        const Monitor* mon = static_cast<const Monitor*>(usuario);
+        string horario = mon->getHorario();
+        cout << "  Codigo de monitor: " << mon->getCodigoMonitor() << " | Materias: " << textoMaterias(*mon) << endl;
+        cout << "  Disponibilidad como monitor: " << (horario.empty() ? "(sin disponibilidad)" : horario) << endl;
+        if (mon->estaLibre()) cout << "  Solicitud asignada: ninguna (libre)" << endl;
+        else cout << "  Solicitud asignada: #" << mon->getSolicitudActual() << endl;
+    }
+}
+
+// Opcion 30 del administrador. Busca por codigo con la tabla hash, sin recorrer los usuarios
+static void buscarUsuarioPorCodigo() {
+    int tipo = leerRango("Buscar por (1 = codigo de estudiante, 2 = codigo de monitor, 0 = cancelar): ", 0, 2);
+    if (tipo == 0) { cout << "Busqueda cancelada." << endl; return; }
+    long codigo = leerRango("Codigo a buscar: ", 1, numeric_limits<int>::max());
+    TablaHashUsuarios& tabla = (tipo == 1) ? indiceEstudiantes : indiceMonitores;
+    long comparaciones = 0;
+    Usuario* encontrado = tabla.buscar(codigo, comparaciones);
+    if (encontrado == nullptr) cout << "No se encontro un " << (tipo == 1 ? "estudiante" : "monitor")
+                                    << " con codigo " << codigo << "." << endl;
+    else mostrarFichaUsuario(encontrado);
+    cout << "(tabla hash: " << comparaciones << " comparacion(es) | " << tabla.tamano()
+         << " registros en " << tabla.capacidad() << " cubetas)" << endl;
+}
+
 // Pide un codigo de estudiante (o de un monitor como estudiante) y lo devuelve, o nullptr.
-// TODO [dependencia compañero HU-04]: cambiar el recorrido lineal por la tabla hash propia.
+//HU-04, el TODO se resolvio: ahora busca en la tabla hash en vez de recorrer el vector. Se conserva el parametro 'usuarios' para no cambiar las llamadas existentes)
 static Estudiante* pedirEstudiantePorCodigo(const vector<Usuario*>& usuarios) {
+    (void)usuarios;   // (Nuevo: el parametro ya no se usa, queda por compatibilidad)
     long codigo = leerRango("Codigo del estudiante: ", 1, numeric_limits<int>::max());
-    Estudiante* estudiante = buscarEstudiantePorCodigo(usuarios, codigo);
+    long comparaciones = 0;   // (Nuevo)
+    Usuario* encontrado = indiceEstudiantes.buscar(codigo, comparaciones);
+    Estudiante* estudiante = (encontrado == nullptr) ? nullptr : static_cast<Estudiante*>(encontrado);
     if (estudiante == nullptr) cout << "No se encontro un estudiante con codigo " << codigo << "." << endl;
     return estudiante;
 }
@@ -404,6 +506,275 @@ static void mostrarAgendaSemanal(const vector<Solicitud>& solicitudes, const vec
     cout << (cruces == 0 ? "Agenda sin cruces de horario." : "Se encontraron cruces.") << endl;
 }
 
+// Opcion 16 del administrador. Muestra las areas organizadas y lista todo lo que cuelga de la elegida
+static void consultarArea(const vector<Materia>& materias) {   // Consulta de todo lo de un area
+    JerarquiaMaterias jerarquia(materias); 
+    vector<string> areas = jerarquia.areas();
+    if (areas.empty()) {
+        cout << "No hay materias registradas, por lo tanto no hay areas." << endl;
+        return;
+    }
+    cout << "Areas disponibles:" << endl;
+    string listaAreas;
+    for (size_t i = 0; i < areas.size(); i++) {
+        cout << "  " << (i + 1) << ". " << areas[i] << " (" << jerarquia.materiasDeArea(areas[i]).size() << " materia(s))" << endl;
+        listaAreas += (i > 0 ? ", " : "") + areas[i];
+    }
+    string entrada = leerTexto("Escriba el nombre o el numero del area (0 para cancelar): ");
+    if (entrada.empty() || entrada == "0") {
+        cout << "Consulta cancelada." << endl;
+        return;
+    }
+    string area = entrada;
+    if (entrada.size() <= 6 && entrada.find_first_not_of("0123456789") == string::npos) {
+        int numero = stoi(entrada);
+        if (numero >= 1 && numero <= static_cast<int>(areas.size())) area = areas[numero - 1];
+    }
+    if (!jerarquia.existeArea(area)) {
+        cout << "Error: el area \"" << entrada << "\" no existe. Areas disponibles: " << listaAreas << "." << endl;
+        return;
+    }
+    jerarquia.mostrarArea(area);
+    cout << "Total: " << jerarquia.materiasDeArea(area).size() << " materia(s) en el area." << endl;
+}
+
+// HU-19: porcentaje con un decimal como texto ("57.1%"), sin alterar el formato de cout
+static string textoPorcentaje(double porcentaje) {
+    char buffer[16];
+    snprintf(buffer, sizeof(buffer), "%.1f%%", porcentaje);
+    return string(buffer);
+}
+
+// HU-19: informe de cobertura del programa: atendidas, asignadas, pendientes, porcentaje total y por materia
+static void mostrarInformeCobertura(const vector<Solicitud>& solicitudes, const vector<Materia>& materias) {
+    if (solicitudes.empty()) {
+        cout << "No hay solicitudes registradas: no hay cobertura que medir." << endl; 
+        return;
+    }
+    ResumenCobertura total = resumirCobertura(solicitudes);
+    int vigentes = total.pendientes + total.asignadas + total.atendidas;
+    cout << "===== INFORME DE COBERTURA =====" << endl;
+    cout << "Cobertura = atendidas / (solicitudes - canceladas) x 100" << endl;
+    cout << "Total de solicitudes: " << (vigentes + total.canceladas) << endl;
+    cout << "  Atendidas:               " << total.atendidas << endl;
+    cout << "  Asignadas (en curso):    " << total.asignadas << endl;
+    cout << "  Pendientes (sin cubrir): " << total.pendientes << endl;
+    cout << "  Canceladas (no cuentan): " << total.canceladas << endl;
+    if (vigentes == 0) cout << "Cobertura total: sin solicitudes vigentes (todas fueron canceladas)." << endl;   // Evita mostrar un 0%
+    else cout << "Cobertura total: " << textoPorcentaje(porcentajeCobertura(total)) << " (" << total.atendidas << " de " << vigentes << " solicitudes vigentes)" << endl;   // (Nuevo: HU-19, criterio: porcentaje total)
+
+    cout << endl << "Cobertura por materia:" << endl;
+    vector<ResumenCobertura> porMateria = resumirCoberturaPorMateria(solicitudes);
+    for (size_t i = 0; i < porMateria.size(); i++) {
+        const ResumenCobertura& r = porMateria[i];
+        long c = 0;
+        int pos = buscarMateriaBinaria(materias, r.codigoMateria, c);
+        string nombre = (pos == -1) ? "(materia no registrada)" : materias[pos].getNombre();
+        int vig = r.pendientes + r.asignadas + r.atendidas;
+        cout << "  " << r.codigoMateria << " " << nombre << " | atendidas " << r.atendidas << " | asignadas " << r.asignadas
+             << " | pendientes " << r.pendientes << " | canceladas " << r.canceladas << " | cobertura "
+             << (vig == 0 ? "n/a (sin solicitudes vigentes)" : textoPorcentaje(porcentajeCobertura(r))) << endl;
+    }
+
+    cout << endl << "Solicitudes sin cubrir (pendientes):" << endl;
+    if (total.pendientes == 0) cout << "  No hay solicitudes pendientes: todas estan cubiertas." << endl;
+    for (size_t i = 0; i < solicitudes.size(); i++) {
+        if (solicitudes[i].getEstado() != "Pendiente") continue;
+        cout << "  #" << solicitudes[i].getId() << " | " << solicitudes[i].getCodigoMateria()
+             << " | estudiante " << solicitudes[i].getCodigoEstudiante()
+             << " | urgencia " << nombreUrgencia(solicitudes[i].getUrgencia()) << endl;
+    }
+}
+
+static void cambiarEstadoUsuario(Administrador& admin, vector<Usuario*>& usuarios) {
+    string username;
+    cout << "Username del usuario: ";
+    cin >> username;
+    Usuario* objetivo = nullptr;
+    for (size_t i = 0; i < usuarios.size(); i++) {
+        if (usuarios[i]->getUsername() == username) { objetivo = usuarios[i]; break; }
+    }
+    if (objetivo == nullptr) {
+        cout << "Usuario no encontrado." << endl;
+        return;
+    }
+    cout << "El usuario " << username << " (" << objetivo->getRol() << ") esta "
+         << (objetivo->isActivo() ? "activo" : "inactivo") << "." << endl;
+    int accion = leerRango("Accion (1 = activar, 2 = desactivar, 0 = cancelar): ", 0, 2);
+    if (accion == 0) {
+        cout << "No se modifico nada." << endl;
+        return;
+    }
+    // Evita que el administrador se bloquee a si mismo: si se desactiva con la sesion abierta, ya no podria volver a entrar
+    if (accion == 2 && objetivo->getUsername() == admin.getUsername()) {
+        cout << "No puede desactivar su propio usuario mientras tiene la sesion abierta." << endl;
+        return;
+    }
+    bool nuevoEstado = (accion == 1);
+    if (objetivo->isActivo() == nuevoEstado) {
+        cout << "El usuario ya estaba " << (nuevoEstado ? "activo" : "inactivo") << ". No hubo cambios." << endl;
+        return;
+    }
+    objetivo->setActivo(nuevoEstado);
+    cout << "El usuario " << username << " ahora esta " << (nuevoEstado ? "activo" : "inactivo") << "." << endl;
+}
+
+//Pasa un texto a minusculas para comparar areas sin distinguir mayusculas
+static string enMinusculas(const string& texto) {
+    string resultado = texto;
+    for (size_t i = 0; i < resultado.size(); i++)
+        resultado[i] = static_cast<char>(tolower(static_cast<unsigned char>(resultado[i])));
+    return resultado;
+}
+
+//Dos areas son la misma si coinciden ignorando mayusculas
+static bool mismaArea(const string& a, const string& b) {
+    return enMinusculas(a) == enMinusculas(b);
+}
+
+// El profesor ve una materia si es de su area. Un profesor con area "General"
+// (los profesores antiguos, sin area asignada) ve todas las materias, como antes.
+static bool materiaEnAreaDelProfesor(const Profesor& prof, const Materia& materia) {
+    return mismaArea(prof.getArea(), "General") || mismaArea(prof.getArea(), materia.getArea());
+}
+
+// Pide un codigo de materia y devuelve su posicion si es del area del profesor.
+// Devuelve -1 (e informa el motivo) si no existe o si es de otra area.
+static int pedirMateriaDeSuArea(const Profesor& prof, const vector<Materia>& materias) {
+    string codigo;
+    cout << "Codigo de la materia: ";
+    cin >> codigo;
+    long c = 0;
+    int pos = buscarMateriaBinaria(materias, codigo, c);
+    if (pos == -1) {
+        cout << "La materia no existe." << endl;
+        return -1;
+    }
+    if (!materiaEnAreaDelProfesor(prof, materias[pos])) {
+        cout << "La materia " << codigo << " es del area " << materias[pos].getArea()
+             << ", no de su area (" << prof.getArea() << ")." << endl;
+        return -1;
+    }
+    return pos;
+}
+
+//Materias de un monitor que son del area del profesor, separadas por coma ("" si ninguna)
+static string textoMateriasDeArea(const Profesor& prof, const Monitor& mon, const vector<Materia>& materias) {
+    const vector<string>& lista = mon.getMaterias();
+    string texto;
+    for (size_t i = 0; i < lista.size(); i++) {
+        long c = 0;
+        int pos = buscarMateriaBinaria(materias, lista[i], c);
+        if (pos == -1 || !materiaEnAreaDelProfesor(prof, materias[pos])) continue;
+        if (!texto.empty()) texto += ", ";
+        texto += lista[i];
+    }
+    return texto;
+}
+
+//Pide el area de un profesor. Muestra las areas que existen en las materias y solo
+// acepta una de ellas (sin distinguir mayusculas: "matematicas" queda como "Matematicas").
+// Devuelve "" solo si se acaba la entrada; el profesor queda entonces con area "General".
+static string pedirAreaProfesor(const vector<Materia>& materias) {
+    JerarquiaMaterias jerarquia(materias);
+    vector<string> areas = jerarquia.areas();
+    cout << "Areas de materias existentes: ";
+    if (areas.empty()) cout << "(ninguna)";
+    for (size_t i = 0; i < areas.size(); i++) cout << (i > 0 ? ", " : "") << areas[i];
+    cout << endl;
+    if (areas.empty()) {                                         // sin materias no hay areas contra las cuales validar
+        cout << "Aviso: no hay materias registradas, el area no se puede validar." << endl;
+        return leerTexto("Area del profesor: ");
+    }
+    while (true) {
+        string area = leerTexto("Area del profesor: ");
+        if (area.empty()) return area;                           // fin de entrada
+        for (size_t i = 0; i < areas.size(); i++)
+            if (mismaArea(areas[i], area)) return areas[i];      // se guarda con la escritura oficial del area
+        cout << "Esa area no existe en las materias. Elija una de la lista." << endl;
+    }
+}
+
+//Cambia el area de un profesor que ya existe (opcion 28 del administrador)
+static void cambiarAreaProfesor(vector<Usuario*>& usuarios, const vector<Materia>& materias) {
+    string username;
+    cout << "Username del profesor: ";
+    cin >> username;
+    Profesor* profesor = nullptr;
+    for (size_t i = 0; i < usuarios.size(); i++) {
+        if (usuarios[i]->getRol() == "Profesor" && usuarios[i]->getUsername() == username) {
+            profesor = static_cast<Profesor*>(usuarios[i]);      // el rol confirma el tipo
+            break;
+        }
+    }
+    if (profesor == nullptr) {
+        cout << "Profesor no encontrado." << endl;
+        return;
+    }
+    cout << "Area actual de " << profesor->getNombres() << " " << profesor->getApellidos() << ": " << profesor->getArea() << endl;
+    string nueva = pedirAreaProfesor(materias);
+    if (nueva.empty()) {                                         // fin de entrada
+        cout << "No se modifico nada." << endl;
+        return;
+    }
+    profesor->setArea(nueva);
+    cout << "El area de " << profesor->getNombres() << " ahora es " << profesor->getArea() << "." << endl;
+}
+
+// Activa o desactiva un usuario de cualquier rol, buscandolo por username.
+// Un usuario inactivo no puede iniciar sesion (lo valida Main.cpp, HU-20).
+static void cambiarEstadoUsuario(Administrador& admin, vector<Usuario*>& usuarios,
+                                 vector<Solicitud>& solicitudes, ColaSolicitudes& cola,
+                                 PilaAsignaciones& historial, BitacoraAsignaciones& bitacora) {
+    string username;
+    cout << "Username del usuario: ";
+    cin >> username;
+    Usuario* objetivo = nullptr;
+    for (size_t i = 0; i < usuarios.size(); i++) {
+        if (usuarios[i]->getUsername() == username) { objetivo = usuarios[i]; break; }
+    }
+    if (objetivo == nullptr) {
+        cout << "Usuario no encontrado." << endl;
+        return;
+    }
+    cout << "El usuario " << username << " (" << objetivo->getRol() << ") esta "
+         << (objetivo->isActivo() ? "activo" : "inactivo") << "." << endl;
+    int accion = leerRango("Accion (1 = activar, 2 = desactivar, 0 = cancelar): ", 0, 2);
+    if (accion == 0) {
+        cout << "No se modifico nada." << endl;
+        return;
+    }
+    // Evita que el administrador se bloquee a si mismo: si se desactiva con la sesion abierta, ya no podria volver a entrar
+    if (accion == 2 && objetivo->getUsername() == admin.getUsername()) {
+        cout << "No puede desactivar su propio usuario mientras tiene la sesion abierta." << endl;
+        return;
+    }
+    bool nuevoEstado = (accion == 1);
+    if (objetivo->isActivo() == nuevoEstado) {
+        cout << "El usuario ya estaba " << (nuevoEstado ? "activo" : "inactivo") << ". No hubo cambios." << endl;
+        return;
+    }
+    // Un monitor con solicitud asignada no puede quedar inactivo con ella: se pide confirmacion
+    // y la solicitud vuelve a la cola como pendiente.
+    if (!nuevoEstado) {
+        Monitor* monitor = dynamic_cast<Monitor*>(objetivo);
+        if (monitor != nullptr && !monitor->estaLibre()) {
+            cout << "El monitor tiene asignada la solicitud #" << monitor->getSolicitudActual()
+                 << ". Si lo desactiva, la solicitud vuelve a la cola como pendiente." << endl;
+            if (leerRango("Continuar (1 = si, 0 = no): ", 0, 1) == 0) {
+                cout << "No se modifico nada." << endl;
+                return;
+            }
+            liberarSolicitudDeMonitor(*monitor, solicitudes, cola, historial, bitacora, "monitor desactivado");
+        }
+    }
+    objetivo->setActivo(nuevoEstado);
+    cout << "El usuario " << username << " ahora esta " << (nuevoEstado ? "activo" : "inactivo") << "." << endl;
+    // Se guarda al instante (usuarios, solicitudes, asignaciones y bitacora), sin esperar a salir del programa
+    cout << (guardarCambios() ? "Cambio guardado en el archivo."
+                              : "Aviso: no se pudo guardar el cambio en el archivo.") << endl;
+}
+
 // Registra un usuario nuevo de cualquier rol y lo agrega al vector
 static void registrarUsuario(vector<Usuario*>& usuarios, const vector<Materia>& materias) {
     int rol = leerRango("Rol (1 = Administrador, 2 = Profesor, 3 = Estudiante, 4 = Monitor): ", 1, 4);
@@ -427,7 +798,7 @@ static void registrarUsuario(vector<Usuario*>& usuarios, const vector<Materia>& 
     }
 
     // Mayor codigo existente de cada tipo, para generar el siguiente
-    long maxAdmin = 0, maxEstudiante = 0, maxMonitor = 0;
+    long maxAdmin = 0, maxEstudiante = 0, maxMonitor = 0, maxProfesor = 0;
     for (size_t i = 0; i < usuarios.size(); i++) {
         if (Administrador* a = dynamic_cast<Administrador*>(usuarios[i]))
             maxAdmin = max(maxAdmin, a->getCodigoAdministrador());
@@ -435,6 +806,8 @@ static void registrarUsuario(vector<Usuario*>& usuarios, const vector<Materia>& 
             maxEstudiante = max(maxEstudiante, e->getCodigoEstudiante());
         if (Monitor* m = dynamic_cast<Monitor*>(usuarios[i]))
             maxMonitor = max(maxMonitor, m->getCodigoMonitor());
+        if (Profesor* pr = dynamic_cast<Profesor*>(usuarios[i]))
+            maxProfesor = max(maxProfesor, pr->getCodigoProfesor());
     }
 
     Usuario* nuevo = nullptr;
@@ -444,7 +817,9 @@ static void registrarUsuario(vector<Usuario*>& usuarios, const vector<Materia>& 
         nuevo = new Administrador(nombres, apellidos, username, password, codigo);
     } else if (rol == 2) {
         string departamento = leerTexto("Departamento: ");
-        nuevo = new Profesor(nombres, apellidos, username, password, departamento);
+        string area = pedirAreaProfesor(materias); 
+        codigo = maxProfesor + 1;
+        nuevo = new Profesor(nombres, apellidos, username, password, departamento, codigo, area);
     } else {
         string carrera = leerTexto("Carrera: ");
         int semestre = leerRango("Semestre (1-9): ", 1, 9);
@@ -469,6 +844,7 @@ static void registrarUsuario(vector<Usuario*>& usuarios, const vector<Materia>& 
     }
 
     usuarios.push_back(nuevo);
+    indexarUsuario(nuevo);   // (Nuevo: HU-04, el usuario recien registrado se puede buscar por codigo de inmediato)
     cout << "Usuario " << username << " registrado como " << nuevo->getRol();
     if (codigo != 0) cout << " (codigo " << codigo << ")";
     cout << "." << endl;
@@ -495,6 +871,7 @@ void menuGeneral() {
 void menuEstudiante(Estudiante& est, vector<Materia>& materias, vector<Solicitud>& solicitudes, ColaSolicitudes& cola, int& contadorSolicitudes) {
     int opcion = -1;
     while (opcion != 0) {
+        if (!guardarCambios()) cout << "Aviso: no se pudieron guardar los cambios en los archivos." << endl;
         cout << "\n--- MENU ESTUDIANTE (" << est.getNombres() << ") ---" << endl;
         cout << "1. Ver materias disponibles" << endl;
         cout << "2. Ver prerrequisitos de una materia" << endl;
@@ -588,6 +965,7 @@ void menuEstudiante(Estudiante& est, vector<Materia>& materias, vector<Solicitud
 void menuMonitor(Monitor& mon, vector<Solicitud>& solicitudes, ColaSolicitudes& cola) {
     int opcion = -1;
     while (opcion != 0) {
+        if (!guardarCambios()) cout << "Aviso: no se pudieron guardar los cambios en los archivos." << endl;
         cout << "\n--- MENU MONITOR (" << mon.getNombres() << ") ---" << endl;
         cout << "1. Ver todas las solicitudes" << endl;
         cout << "2. Ver cola de pendientes (en orden de atencion)" << endl;
@@ -647,30 +1025,36 @@ void menuMonitor(Monitor& mon, vector<Solicitud>& solicitudes, ColaSolicitudes& 
 void menuProfesor(Profesor& prof, vector<Materia>& materias, vector<Solicitud>& solicitudes,vector<Usuario*>& usuarios) {
     int opcion = -1;
     while (opcion != 0) {
-        cout << "\n--- MENU PROFESOR (" << prof.getNombres() << " | " << prof.getDepartamento() << ") ---" << endl;
-        cout << "1. Ver materias" << endl;
-        cout << "2. Ver prerrequisitos de una materia" << endl;
-        cout << "3. Ver solicitudes de una materia" << endl;
-        cout << "4. Ver monitores y su materia asignada" << endl;
-        cout << "5. Ver horario de una materia" << endl;
+        if (!guardarCambios()) cout << "Aviso: no se pudieron guardar los cambios en los archivos." << endl;
+        cout << "\n--- MENU PROFESOR (" << prof.getNombres() << " | " << prof.getDepartamento()
+             << " | Area: " << prof.getArea() << " | Codigo: " << prof.getCodigoProfesor() << ") ---" << endl;
+        cout << "1. Ver materias de mi area" << endl;
+        cout << "2. Ver prerrequisitos de una materia de mi area" << endl;
+        cout << "3. Ver solicitudes de una materia de mi area" << endl;
+        cout << "4. Ver monitores y su materia asignada de mi area" << endl;
+        cout << "5. Ver horario de una materia de mi area" << endl;
         cout << "0. Cerrar sesion" << endl;
         opcion = leerOpcion();
 
         if (opcion == 1) {
-            listarMaterias(materias);
+            vector<Materia> delArea;                                               // (Cambio: HU-28, solo las materias del area del profesor)
+            for (size_t i = 0; i < materias.size(); i++)
+                if (materiaEnAreaDelProfesor(prof, materias[i])) delArea.push_back(materias[i]);
+            if (delArea.empty()) cout << "No hay materias en su area (" << prof.getArea() << ")." << endl;
+            else listarMaterias(delArea);                                          // se ordena una copia; el vector original no cambia
 
         } else if (opcion == 2) {
-            verPrerrequisitos(materias);
+            int pos = pedirMateriaDeSuArea(prof, materias);                        // (Cambio: HU-28, solo materias de su area)
+            if (pos != -1) {
+                cout << materias[pos].getNombre() << ":" << endl;
+                if (materias[pos].getPrerrequisitos().empty()) cout << "  No tiene prerrequisitos." << endl;
+                else mostrarPrerrequisitos(materias, materias[pos].getCodigo());
+            }
 
         } else if (opcion == 3) {
-            string codigo;
-            cout << "Codigo de la materia: ";
-            cin >> codigo;
-            long c = 0;
-            if (buscarMateriaBinaria(materias, codigo, c) == -1) {
-                cout << "La materia no existe." << endl;
-                continue;
-            }
+            int posMateria = pedirMateriaDeSuArea(prof, materias);                 // (Cambio: HU-28, solo materias de su area)
+            if (posMateria == -1) continue;
+            string codigo = materias[posMateria].getCodigo();
             bool hay = false;
             for (size_t i = 0; i < solicitudes.size(); i++) {
                 if (solicitudes[i].getCodigoMateria() == codigo) {
@@ -682,18 +1066,27 @@ void menuProfesor(Profesor& prof, vector<Materia>& materias, vector<Solicitud>& 
 
         } else if (opcion == 4) {
             bool hay = false;
+            bool veTodo = mismaArea(prof.getArea(), "General");                    // (Nuevo: HU-28, area General = ve todo, como antes)
             for (Usuario* u : usuarios) {
                 Monitor* mon = dynamic_cast<Monitor*>(u);
                 if (!mon) continue;
-                string materia = textoMaterias(*mon);
+                string materia = veTodo ? textoMaterias(*mon) : textoMateriasDeArea(prof, *mon, materias);   // (Cambio: HU-28, solo materias de su area)
+                if (materia.empty()) continue;                                     // (Nuevo: HU-28, monitor sin materias de su area)
                 cout << mon->getNombres() << " " << mon->getApellidos() << " | Materias: " << materia
                      << " | Horario: " << mon->getHorario() << endl;
                 hay = true;
             }
-            if (!hay) cout << "No hay monitores registrados." << endl;
+            if (!hay) cout << (veTodo ? "No hay monitores registrados."
+                                      : "No hay monitores que atiendan materias de su area.") << endl;   // (Cambio: HU-28)
 
         } else if (opcion == 5) {
-            verHorarioMateria(materias);
+            int pos = pedirMateriaDeSuArea(prof, materias);                        // (Cambio: HU-28, solo materias de su area)
+            if (pos != -1) {                                                       // (Nuevo: mismo contenido que verHorarioMateria)
+                cout << materias[pos].getNombre() << ":" << endl;
+                mostrarMatrizHorario(materias[pos]);
+                cout << "Bloques:" << endl;
+                mostrarHorarioMateria(materias, materias[pos].getCodigo());
+            }
         } else if (opcion != 0) {
             cout << "Opcion invalida." << endl;
         }
@@ -706,6 +1099,7 @@ void menuAdministrador(Administrador& admin, vector<Materia>& materias, vector<S
                        ColaSolicitudes& cola, BitacoraAsignaciones& bitacora) {
     int opcion = -1;
     while (opcion != 0) {
+        if (!guardarCambios()) cout << "Aviso: no se pudieron guardar los cambios en los archivos." << endl;
         cout << "\n--- MENU ADMINISTRADOR (" << admin.getNombres() << ") ---" << endl;
         cout << "1. Ver materias registradas" << endl;
         cout << "2. Registrar nueva materia" << endl;
@@ -722,7 +1116,7 @@ void menuAdministrador(Administrador& admin, vector<Materia>& materias, vector<S
         cout << "13. Ver materias de un monitor" << endl;
         cout << "14. Definir disponibilidad de un monitor" << endl;
         cout << "15. Ver jerarquia de materias (area -> nivel -> materia)" << endl;
-        // cout << "16. Consultar todo lo que cuelga de un area" << endl;   // (Julian)
+        cout << "16. Consultar todo lo que cuelga de un area" << endl;
         cout << "17. Cambiar area y nivel de una materia" << endl;
         cout << "18. Ver red de prerrequisitos (grafo)" << endl;
         cout << "19. Materias afectadas si se reprueba una materia" << endl;
@@ -733,6 +1127,10 @@ void menuAdministrador(Administrador& admin, vector<Materia>& materias, vector<S
         cout << "24. Consultar estados y materias afectadas de un estudiante" << endl;
         cout << "25. Ver agenda semanal de sesiones" << endl;
         cout << "26. Definir disponibilidad de un estudiante" << endl;
+        cout << "27. Activar o desactivar un usuario" << endl;
+        cout << "28. Cambiar el area de un profesor" << endl;
+        cout << "29. Ver informe de cobertura del programa" << endl;
+        cout << "30. Buscar estudiante o monitor por codigo (tabla hash)" << endl;   // (Nuevo: HU-04)
         cout << "0. Cerrar sesion" << endl;
         opcion = leerOpcion();
 
@@ -878,8 +1276,8 @@ void menuAdministrador(Administrador& admin, vector<Materia>& materias, vector<S
             JerarquiaMaterias jerarquia(materias);
             jerarquia.mostrar();
 
-        // TODO : opcion 16, consultar todo lo que cuelga de un area.
-        // La jerarquia ya la deja lista: JerarquiaMaterias(materias) y recorrer el nodo del area.
+        } else if (opcion == 16) {
+            consultarArea(materias);
 
         } else if (opcion == 17) {
             string codigo;
@@ -944,6 +1342,18 @@ void menuAdministrador(Administrador& admin, vector<Materia>& materias, vector<S
         } else if (opcion == 26) {
             Estudiante* est = pedirEstudiantePorCodigo(usuarios);
             if (est) pedirDisponibilidadEstudiante(*est);
+        
+        } else if (opcion == 27){
+            cambiarEstadoUsuario(admin, usuarios, solicitudes, cola, historial, bitacora);
+        
+        } else if (opcion == 28){
+            cambiarAreaProfesor(usuarios, materias);
+
+        } else if (opcion == 29){
+            mostrarInformeCobertura(solicitudes, materias);
+
+        } else if (opcion == 30) {
+            buscarUsuarioPorCodigo();
 
         } else if (opcion != 0) {
             cout << "Opcion invalida." << endl;

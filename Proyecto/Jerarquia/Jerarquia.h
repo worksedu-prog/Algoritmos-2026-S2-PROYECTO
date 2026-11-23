@@ -31,6 +31,8 @@ private:
     void liberar(NodoJerarquia* nodo);                                  // postorden recursivo
     void mostrarRec(const NodoJerarquia* nodo, int profundidad) const;  // preorden recursivo
     int contarMaterias(const NodoJerarquia* nodo) const;                // recursivo
+    NodoJerarquia* buscarAreaExistente(const string& area) const;   // Busca un area entre las hijas de la raiz ignorando mayusculas; nullptr si no existe
+    void recolectarMaterias(const NodoJerarquia* nodo, vector<string>& codigos) const;   // Recorrido recursivo en preorden que junta los codigos de las materias de un subarbol
 
 public:
     JerarquiaMaterias() : raiz(new NodoJerarquia(NODO_RAIZ, "Catalogo")) {}
@@ -42,6 +44,9 @@ public:
     void insertar(const string& area, int nivel, const string& codigo, const string& nombre);
     void mostrar() const;                                  // arbol completo
     vector<string> areas() const;                          // areas en orden alfabetico
+    bool existeArea(const string& area) const;   // True si el area existe, sin distinguir mayusculas
+    vector<string> materiasDeArea(const string& area) const;   // Codigos de todas las materias del area, de menor a mayor nivel; vacia si el area no existe
+    bool mostrarArea(const string& area) const;   // Imprime el area con sus niveles y materias; false si el area no existe
 };
 
 #endif
