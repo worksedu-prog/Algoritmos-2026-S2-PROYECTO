@@ -16,7 +16,6 @@ const int DIAS_SEMANA = 6;       // Lunes a Sabado
 const int FRANJAS_DIA = 28;      // 6:00 AM - 8:00 PM en bloques de 30 minutos
 const int HORA_INICIO_DIA = 6;
 
-// Un bloque continuo de clase: dia, franja de inicio y franja de fin 
 struct BloqueHorario {
     int dia;
     int inicio;
@@ -31,6 +30,8 @@ private:
     string tipo;                     // "Obligatoria" o "Electiva"
     vector<string> prerrequisitos;   // codigos de otras materias
     bool horario[DIAS_SEMANA][FRANJAS_DIA];   // true = franja ocupada
+    string area;                     // Area academica 
+    int nivel;                       // Nivel dentro del area 
 public:
     Materia();
     Materia(string codigo, string nombre, int creditos, string tipo,
@@ -43,6 +44,10 @@ public:
     const vector<string>& getPrerrequisitos() const { return prerrequisitos; }
     bool franjaOcupada(int dia, int franja) const { return horario[dia][franja]; }
     void ocuparFranja(int dia, int franja) { horario[dia][franja] = true; }
+    string getArea() const { return area; }
+    int getNivel() const { return nivel; }
+    void setArea(const string& a) { area = a.empty() ? "General" : a; }
+    void setNivel(int n) { nivel = (n < 1) ? 1 : n; }
     void mostrarCodigo() const;
     void mostrarInfo() const;
 };

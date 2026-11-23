@@ -27,11 +27,16 @@ int main() {
     vector<Solicitud> solicitudes;
     int contadorSolicitudes = 0;
 
+    // Avisar antes de iniciar si falta lo necesario
+    if (!gestorArchivos.verificarEntorno()) return 1;
+
     // Cargar los datos desde los .txt a los vectores
     gestorArchivos.cargarUsuarios(usuarios);
     gestorArchivos.cargarMaterias(materias);
     gestorArchivos.cargarSolicitudes(solicitudes);
     gestorArchivos.cargarBitacora(bitacora);
+    gestorArchivos.cargarEstadosMaterias(usuarios);
+    gestorArchivos.cargarAsignaciones(solicitudes, usuarios);
     for (size_t i = 0; i < solicitudes.size(); i++) {
         if (solicitudes[i].getId() > contadorSolicitudes) {
             contadorSolicitudes = solicitudes[i].getId();
@@ -45,15 +50,27 @@ int main() {
     for (size_t i = 0; i < solicitudes.size(); i++) {
         if (solicitudes[i].getId() > contadorSolicitudes) contadorSolicitudes = solicitudes[i].getId();
         
-        // solicitud que quedo "Asignada" al cerrar vuelve a "Pendiente" para no perderse
-        if (solicitudes[i].getEstado() == "Asignada") {   
+        // Una "Asignada" sin asignacion guardada (archivo viejo o monitor inexistente) vuelve a "Pendiente"
+        if (solicitudes[i].getEstado() == "Asignada" && !solicitudes[i].tieneBloque()) {
             solicitudes[i].setEstado("Pendiente");
-            bitacora.registrar("REVERSION automatica de la solicitud #" + to_string(solicitudes[i].getId()) + " al reiniciar el programa (la asignacion no se guarda)");
+            bitacora.registrar("REVERSION automatica de la solicitud #" + to_string(solicitudes[i].getId()) + " al reiniciar el programa (no habia una asignacion guardada valida)");
         }
-        if (solicitudes[i].getEstado() == "Pendiente") {
-            cola.encolar(solicitudes[i].getId(), solicitudes[i].getUrgencia());
+
+        if (solicitudes[i].getEstado() == "Asignada" && solicitudes[i].tieneBloque()) {
+            Monitor* asignado = buscarMonitorPorCodigo(usuarios, solicitudes[i].getCodigoMonitor());
+            if (asignado != nullptr && !asignado->isActivo()) {
+                solicitudes[i].setEstado("Pendiente");
+                solicitudes[i].limpiarSesion(); 
+                asignado->setSolicitudActual(0);
+                bitacora.registrar("REVERSION automatica de la solicitud #" + to_string(solicitudes[i].getId()) +
+                                   " al reiniciar el programa (el monitor " + asignado->getUsername() + " esta inactivo)");
+            }
         }
     }
+    // La cola se arma con la prioridad de 3 criterios (semestre, grafo de prerrequisitos, antiguedad)
+    recalcularPrioridades(solicitudes, usuarios, materias, cola);
+
+    configurarGuardado(gestorArchivos, usuarios, materias, solicitudes, bitacora);
 
     // Se muestra el menú informativo para pruebas
     menuPruebas();
@@ -85,7 +102,14 @@ int main() {
                 if (u->autenticarUsuario(user, pass)) { encontrado = u; break; }
             }
 
-            if (!encontrado) {
+            // Distingue credenciales incorrectas de usuario inactivo
+            bool inactivo = false;
+            for (Usuario* u : usuarios) {
+                if (u->getUsername() == user && u->getPassword() == pass && !u->isActivo()) inactivo = true;
+            }
+            if (!encontrado && inactivo) {
+                cout << "El usuario esta inactivo. Contacte al administrador." << endl;
+            } else if (!encontrado) {
                 cout << "Usuario o contrasena incorrectos." << endl;
             } else {
                 encontrado->informacion();
@@ -113,6 +137,8 @@ int main() {
     gestorArchivos.guardarMaterias(materias);
     gestorArchivos.guardarSolicitudes(solicitudes);
     gestorArchivos.guardarBitacora(bitacora);
+    gestorArchivos.guardarEstadosMaterias(usuarios);
+    gestorArchivos.guardarAsignaciones(solicitudes);
     // Liberación de memoria dinámica
     for (Usuario* u : usuarios) {delete u;}
     usuarios.clear();

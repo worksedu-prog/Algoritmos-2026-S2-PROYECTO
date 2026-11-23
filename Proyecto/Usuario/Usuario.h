@@ -43,11 +43,20 @@ public:
     long getCodigoAdministrador() const { return codigoAdministrador; }
 };
 
+// Estado de una materia cursada por un estudiante
+struct EstadoMateria {
+    string codigoMateria;
+    string estado;           // "Aprobada", "Reprobada" o "Retirada"
+};
+
 class Estudiante : public Usuario {
 protected:
     string carrera;
     long codigoEstudiante;
     int semestre;
+    // Disponibilidad horaria propia del estudiante (independiente de la del Monitor)
+    vector<BloqueHorario> disponibilidadEstudiante;
+    vector<EstadoMateria> estadosMaterias;
 
 public:
     Estudiante(string nombres, string apellidos, string username, string password,
@@ -56,6 +65,15 @@ public:
     long getCodigoEstudiante() const { return codigoEstudiante; }
     string getCarrera() const { return carrera; }
     int getSemestre() const { return semestre; }
+
+    const vector<BloqueHorario>& getDisponibilidadEstudiante() const { return disponibilidadEstudiante; }
+    bool agregarFranjaEstudiante(int dia, int inicio, int fin);   // false si es invalida o se cruza con otra
+    bool disponibleEn(int dia, int inicio, int fin) const;   // el bloque cabe dentro de alguna franja
+    string disponibilidadTexto() const;                 // "Lunes 2:00 PM - 4:00 PM; ..."
+
+    // Registra (o actualiza) el estado de una materia
+    void registrarEstadoMateria(const string& codigo, const string& estado);
+    const vector<EstadoMateria>& getEstadosMaterias() const { return estadosMaterias; }
 };
 
 // Un Monitor es un Estudiante con horario y una lista de materias que atiende
@@ -92,14 +110,58 @@ public:
 class Profesor : public Usuario {
 private:
     string departamento;
+    long codigoProfesor;   
+    string area;           
 
 public:
     Profesor();
     Profesor(string nombres, string apellidos, string username, string password,
              string departamento);
+    Profesor(string nombres, string apellidos, string username, string password,
+             string departamento, long codigoProfesor, string area);   // (Nuevo: HU-34, constructor con codigo y area)
 
     string getDepartamento() const;
     void setDepartamento(const string& departamento);
+    long getCodigoProfesor() const { return codigoProfesor; }
+    void setCodigoProfesor(long codigo) { codigoProfesor = codigo; }
+    string getArea() const { return area; }
+    void setArea(const string& a) { area = a.empty() ? "General" : a; }
 };
+
+class TablaHashUsuarios {
+private:
+    struct Entrada {                                   // Clave -> Usuario
+        long clave;
+        Usuario* usuario;
+    };
+    static constexpr size_t CAPACIDAD_INICIAL = 101;   // Numero primo de cubetas iniciales
+    vector< vector<Entrada> > cubetas;
+    int cantidad; 
+    static size_t indiceDe(long clave, size_t numCubetas);   // Funcion hash
+    void redimensionar();                              // Duplica las cubetas y reubica todo
+
+public:
+    TablaHashUsuarios();
+    bool insertar(long clave, Usuario* usuario);
+    Usuario* buscar(long clave, long& comparaciones) const;
+    int tamano() const { return cantidad; }
+    size_t capacidad() const { return cubetas.size(); }
+    void vaciar();
+};
+
+// Busquedas sobre la lista de usuarios
+// La lista guarda punteros a Usuario. Para saber si un usuario es Estudiante o Monitor
+// se revisa su rol; con el rol confirmado, static_cast convierte el puntero al tipo real.
+// Un Monitor tambien es Estudiante (hereda de Estudiante), por eso cuenta en las busquedas
+// de estudiantes. Todas son recorridos lineales O(n).
+bool esEstudiante(const Usuario* usuario);   // rol "Estudiante" o "Monitor"
+bool esMonitor(const Usuario* usuario);      // rol "Monitor"
+
+// Estudiante (o monitor) con ese codigo de estudiante; nullptr si no existe
+Estudiante* buscarEstudiantePorCodigo(const vector<Usuario*>& usuarios, long codigoEstudiante);
+// Monitor con ese codigo de monitor; nullptr si no existe
+Monitor* buscarMonitorPorCodigo(const vector<Usuario*>& usuarios, long codigoMonitor);
+// Monitor que tiene asignada esa solicitud; nullptr si ninguno la tiene
+Monitor* buscarMonitorConSolicitud(const vector<Usuario*>& usuarios, int idSolicitud);
 
 #endif
