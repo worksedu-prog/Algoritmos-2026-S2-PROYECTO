@@ -2,21 +2,24 @@
 
 <p align="center">
   <b>Aplicación de consola en C++ para gestionar monitorías universitarias:</b><br>
-  usuarios con roles, catálogo de materias con prerrequisitos y horarios, y una cola de solicitudes que atiende primero lo más urgente.<br>
-  Con estructuras de datos propias (<b>pila</b> y <b>cola con prioridad</b>) y algoritmos de <b>búsqueda</b>, <b>ordenamiento</b> y <b>recursión</b> que cuentan sus propias comparaciones.
+  usuarios con roles, catálogo de materias con prerrequisitos, áreas y horarios, y una cola de solicitudes que se ordena con una <b>prioridad objetiva de tres criterios</b>.<br>
+  Con estructuras de datos propias (<b>pila</b>, <b>cola con prioridad</b>, <b>tabla hash</b>, <b>árbol</b> y <b>grafo</b>) y algoritmos de <b>búsqueda</b>, <b>ordenamiento</b>, <b>recursión</b> y <b>BFS</b> que cuentan sus propias comparaciones.
 </p>
 
 <p align="center">
-  <img alt="C++" src="https://img.shields.io/badge/C%2B%2B-11%2B-00599C?logo=cplusplus&logoColor=white">
+  <img alt="C++" src="https://img.shields.io/badge/C%2B%2B-17-00599C?logo=cplusplus&logoColor=white">
   <img alt="compilador" src="https://img.shields.io/badge/compilador-g%2B%2B-4CAF50">
   <img alt="interfaz" src="https://img.shields.io/badge/interfaz-consola-lightgrey">
   <img alt="persistencia" src="https://img.shields.io/badge/persistencia-archivos%20.txt-orange">
-  <img alt="estado" src="https://img.shields.io/badge/estado-en%20desarrollo-yellow">
+  <img alt="requerimientos" src="https://img.shields.io/badge/RF-9%2F9%20cumplidos-brightgreen">
+  <img alt="pruebas" src="https://img.shields.io/badge/pruebas-59%2F68%20pasan-blue">
 </p>
 
 <p align="center">
   <a href="#qué-hace">Qué hace</a> ·
+  <a href="#novedades-de-la-versión-final">Novedades</a> ·
   <a href="#inicio-rápido">Inicio rápido</a> ·
+  <a href="#estructura-del-repositorio">Estructura</a> ·
   <a href="#arquitectura">Arquitectura</a> ·
   <a href="#cómo-funciona">Cómo funciona</a> ·
   <a href="#algoritmos-y-complejidad">Algoritmos</a> ·
@@ -33,18 +36,18 @@ Una universidad ofrece monitorías: estudiantes que ayudan a otros en una materi
 
 | Rol | Qué puede hacer |
 |---|---|
-| **Estudiante** | Ver materias ordenadas a su gusto, consultar prerrequisitos y **horarios**, **crear solicitudes de monitoría** con nivel de urgencia, ver su historial y cancelar solicitudes pendientes |
-| **Monitor** | Ver la **cola de pendientes** en orden de atención, **atender la siguiente solicitud**, **terminar la solicitud que el administrador le asignó** y ver las solicitudes ordenadas por urgencia, antigüedad o materia |
-| **Profesor** | Consultar materias, prerrequisitos, horarios, solicitudes por materia y qué monitor tiene asignada cada materia |
-| **Administrador** | Registrar materias (con código autogenerado y prerrequisitos) y usuarios, buscar por código, **asignar materias a monitores**, **asignar solicitudes pendientes a un monitor libre**, **deshacer la última asignación**, consultar la **bitácora** de asignaciones y reversiones, y ordenar solicitudes |
+| **Estudiante** | Ver materias, prerrequisitos y **horarios**, **crear solicitudes de monitoría** (la urgencia la calcula el sistema), ver su historial, cancelar pendientes y **definir su disponibilidad horaria** |
+| **Monitor** | Ver la **cola de pendientes** en orden de atención, **atender la siguiente solicitud**, **terminar la solicitud asignada** y ver las solicitudes ordenadas por urgencia, antigüedad o materia |
+| **Profesor** | Consultar **solo las materias de su área**: prerrequisitos, horarios, solicitudes y monitores que las atienden |
+| **Administrador** | 30 opciones: registrar materias y usuarios, buscar materias (secuencial y binaria) y **estudiantes o monitores por código (tabla hash)**, asignar materias y solicitudes, **emparejar automáticamente** por horario, **reasignar**, **deshacer**, ver la **bitácora**, la **jerarquía de materias**, la **red de prerrequisitos**, las **materias afectadas al reprobar**, la **agenda semanal**, el **informe de cobertura** y activar o desactivar usuarios |
 
-Los datos viven en archivos `.txt`: se cargan al iniciar y se guardan al cerrar, así que el estado sobrevive entre ejecuciones.
+Los datos viven en archivos `.txt` y se **guardan después de cada acción**, así que el estado sobrevive entre ejecuciones aunque el programa se cierre de forma inesperada.
 
 ---
 
 ## Inicio rápido
 
-**Requisitos:** un compilador de C++ (`g++` con soporte C++11 o superior). En Windows se usa [MSYS2](https://www.msys2.org/) (`ucrt64`), igual que en la configuración de VS Code incluida.
+**Requisitos:** un compilador de C++17 (`g++` 9 o superior; probado con **g++ 13.3**). En Windows se usa [MSYS2](https://www.msys2.org/) (`ucrt64`). Solo se usa la biblioteca estándar.
 
 ```bash
 # 1. Clonar
@@ -52,14 +55,12 @@ git clone https://github.com/worksedu-prog/Algoritmos-2026-S2-PROYECTO.git
 cd Algoritmos-2026-S2-PROYECTO
 
 # 2. Compilar
-g++ -std=c++17 -g Proyecto/main.cpp Proyecto/*/*.cpp -o Proyecto/Software
+g++ -std=c++17 -Wall Proyecto/main.cpp Proyecto/*/*.cpp -o Proyecto/Software
 
 # 3. Ejecutar (desde la carpeta Proyecto, o desde la raíz: el programa encuentra data/ solo)
 cd Proyecto
-./Software.exe          
+./Software          # en Windows: Software.exe
 ```
-
-
 
 ### Usuarios de prueba
 
@@ -76,39 +77,82 @@ Al arrancar, el programa muestra estas credenciales (existen en `data/usuarios.t
 
 ## Pruébalo
 
-Sesión real como administrador, comparando los dos tipos de búsqueda (opción `3`, buscando `MAT101`):
+Salidas reales del programa con los datos de `data/`, todas como administrador.
+
+**Búsqueda de una materia** (opción `3`, `MAT101`): compara la búsqueda secuencial con la binaria.
 
 ```text
-Seleccione una opcion: 3
-Codigo a buscar: MAT101
-[MAT101] Calculo Diferencial - 4 creditos (Obligatoria)
+[MAT101] Calculo Diferencial - 4 creditos (Obligatoria) | Matematicas nivel 1
 (secuencial: 5 comparaciones | binaria: 3 comparaciones)
 ```
 
-La recursión sobre prerrequisitos (opción `4`, materia `FIS105`):
+**Materias afectadas al reprobar** (opción `19`, `MAT101`, motivo `1`): BFS sobre el grafo de prerrequisitos.
 
 ```text
-Fisica diferencial:
-  - FIS201 Fisica Mecanica
-    - MAT101 Calculo Diferencial
+Al reprobar MAT101 quedan bloqueadas 3 materia(s):
+  nivel 1 (directas):
+    - FIS201 Fisica Mecanica  (via MAT101)
+  nivel 2 (indirectas):
+    - FIS105 Fisica diferencial  (via FIS201)
+  nivel 3 (indirectas):
+    - CAL106 Calculo 1  (via FIS105)
 ```
 
-El horario de una materia (opción `12`, materia `FIS105`), dibujado como cuadrícula día × franja de 30 minutos:
+**Lo que cuelga de un área** (opción `16`, `Fisica`): recorrido del árbol.
 
 ```text
-  Hora      Lunes      Martes     Miercoles  Jueves     Viernes    Sabado
-  8:00 AM   .          .          .          .          [X]        .
-  8:30 AM   .          .          .          .          [X]        .
-  9:00 AM   .          .          .          .          [X]        .
-  9:30 AM   .          .          .          .          [X]        .
-  10:00 AM  .          [X]        .          .          .          .
+Area: Fisica (2 materias)
+  Nivel 1
+    - [FIS201] Fisica Mecanica
+  Nivel 2
+    - [FIS105] Fisica diferencial
+Total: 2 materia(s) en el area.
+```
+
+**Red de prerrequisitos** (opción `18`):
+
+```text
+Red de prerrequisitos (7 materias). A -> B: B requiere A
+  FIS201 -> FIS105   [2 dependiente(s) en total]
+  MAT101 -> FIS201   [3 dependiente(s) en total]
+  PROG102 -> PROG201   [1 dependiente(s) en total]
   ...
-Bloques:
-  Martes, 10:00 AM - 12:00 PM
-  Viernes, 8:00 AM - 10:00 AM
+La red es aciclica (DAG).
 ```
 
-El recorrido completo de una monitoría (crear, priorizar, asignar, deshacer y guardar) está en el [flujo de pruebas](#flujo-de-pruebas).
+**Informe de cobertura** (opción `29`):
+
+```text
+Cobertura = atendidas / (solicitudes - canceladas) x 100
+Total de solicitudes: 4
+  Atendidas:               1
+  Pendientes (sin cubrir): 2
+  Canceladas (no cuentan): 1
+Cobertura total: 33.3% (1 de 3 solicitudes vigentes)
+```
+
+---
+
+## Estructura del repositorio
+
+```text
+Algoritmos-2026-S2-PROYECTO/
+├── README.md
+├── Documentacion/                  Informe IEEE, diagramas, complejidad y casos de prueba
+└── Proyecto/
+    ├── main.cpp                    Verifica el entorno, carga datos, sanea asignaciones, arma la cola y abre el login
+    ├── Usuario/                    Usuario → Administrador, Estudiante → Monitor, Profesor · TablaHashUsuarios
+    ├── Materia/                    Materia con área, nivel y horario 6×28 · búsquedas · inserción, merge y quick sort
+    ├── Solicitud/                  Solicitud · ColaSolicitudes · merge sort de solicitudes · resumen de cobertura
+    ├── Asignaciones/               Pila de deshacer · bitácora · bloque común · emparejamiento · reasignación
+    ├── Grafo/                      Red de prerrequisitos (BFS) y cálculo de la prioridad
+    ├── Jerarquia/                  Árbol Área → Nivel → Materia
+    ├── GestorArchivos/             Lectura y escritura de los seis archivos de data/
+    ├── Menus/                      Un menú por rol y guardado automático tras cada acción
+    └── data/                       usuarios · materias · solicitudes · asignaciones · estados_materias · bitacora (.txt)
+```
+
+> `Software.exe` es un binario de Windows compilado previamente; se regenera con el comando de compilación.
 
 ---
 
@@ -121,36 +165,41 @@ El sistema se organiza en cuatro capas. Cada capa solo habla con la de al lado, 
 ```mermaid
 flowchart TB
     subgraph PRES[Capa de presentación]
-        MAIN[main.cpp<br/>carga datos, login y bucle principal]
-        MENUS[Menus.cpp<br/>un menú por rol]
+        MAIN[main.cpp<br/>verifica entorno, carga datos, login]
+        MENUS[Menus.cpp<br/>un menú por rol · guardado automático]
     end
     subgraph LOGI[Capa de lógica]
-        ASG[Asignaciones.cpp<br/>asignar · deshacer · bitácora]
+        ASG[Asignaciones<br/>emparejar · reasignar · deshacer · bitácora]
+        GRA[Grafo<br/>BFS · dependientes · prioridad]
+        JER[Jerarquia<br/>árbol área → nivel → materia]
     end
     subgraph DOMI[Capa de dominio]
-        USR[Usuario.h<br/>jerarquía de usuarios]
-        MAT[Materia.h / Materia.cpp<br/>materia, horarios, búsquedas y ordenamientos]
-        SOL[Solicitud.h / Solicitud.cpp<br/>Solicitud, ColaSolicitudes, búsqueda y ordenamiento]
+        USR[Usuario<br/>jerarquía de usuarios · tabla hash]
+        MAT[Materia<br/>horario, búsquedas y ordenamientos]
+        SOL[Solicitud<br/>Solicitud, ColaSolicitudes, cobertura]
     end
     subgraph PERS[Capa de persistencia]
-        GA[GestorArchivos.cpp<br/>lee y escribe]
-        DATA[(data/<br/>usuarios · materias · solicitudes)]
+        GA[GestorArchivos<br/>lee y escribe]
+        DATA[(data/<br/>6 archivos .txt)]
     end
     MAIN --> MENUS
     MAIN --> GA
-    MENUS --> MAT
     MENUS --> ASG
-    MENUS --> USR
-    MENUS --> SOL
+    MENUS --> GRA
+    MENUS --> JER
     ASG --> USR
     ASG --> SOL
+    ASG --> MAT
+    GRA --> MAT
+    GRA --> SOL
+    JER --> MAT
     GA --> USR
     GA --> MAT
     GA --> SOL
     GA --> DATA
 ```
 
-`main` carga los tres archivos, ordena las materias por código (requisito de la búsqueda binaria), reconstruye la cola con las solicitudes que siguen pendientes y entra al bucle de inicio de sesión. Al salir, guarda todo y libera la memoria dinámica de los usuarios.
+`main` verifica que exista `data/`, carga los seis archivos, ordena las materias por código (requisito de la búsqueda binaria) y sanea las asignaciones: una solicitud `Asignada` sin bloque guardado, o cuyo monitor está inactivo, vuelve a `Pendiente` y queda registrada en la bitácora. Luego calcula la prioridad de cada pendiente, arma la cola y entra al bucle de inicio de sesión.
 
 ### Diagrama de clases
 
@@ -171,20 +220,33 @@ classDiagram
     }
     class Profesor {
         -string departamento
+        -long codigoProfesor
+        -string area
     }
     class Estudiante {
         #string carrera
         #long codigoEstudiante
         #int semestre
+        #vector~BloqueHorario~ disponibilidad
+        #vector~EstadoMateria~ estados
+        +agregarFranjaEstudiante(dia, ini, fin) bool
+        +disponibleEn(dia, ini, fin) bool
     }
     class Monitor {
         -long codigoMonitor
-        -string horarioDisponibilidad
-        -string materiaAsignada
+        -vector~string~ materiasMonitor
+        -vector~BloqueHorario~ disponibilidad
         -int solicitudActual
-        +asignarMateria(codigo) void
-        +setSolicitudActual(id) void
-        +estaLibre() bool
+        +agregarMateria(codigo) bool
+        +quitarMateria(codigo) bool
+        +dominaMateria(codigo) bool
+        +agregarFranja(dia, ini, fin) bool
+    }
+    class TablaHashUsuarios {
+        -vector~list~Entrada~~ cubetas
+        +insertar(clave, usuario) void
+        +buscar(clave) Usuario*
+        -redimensionar() void
     }
     class Materia {
         -string codigoMateria
@@ -193,8 +255,9 @@ classDiagram
         -string tipo
         -vector~string~ prerrequisitos
         -bool horario_6x28
+        -string area
+        -int nivel
         +franjaOcupada(dia, franja) bool
-        +ocuparFranja(dia, franja) void
     }
     class BloqueHorario {
         <<struct>>
@@ -207,60 +270,72 @@ classDiagram
         -long codigoEstudiante
         -string codigoMateria
         -int urgencia
-        -string descripcion
         -string estado
-        +setEstado(nuevo) void
-        +mostrarInfo() void
+        -long fechaCreacion
+        -double prioridad
+        -long codigoMonitor
+        -BloqueHorario bloque
+        +setPrioridad(p) void
+        +setSesion(monitor, bloque) void
+    }
+    class ColaSolicitudes {
+        -vector~ItemCola~ elementos
+        +encolar(id, prioridad) void
+        +frente() int
+        +desencolar() void
+        +eliminar(id) void
     }
     class ItemCola {
         <<struct>>
         +int id
-        +int urgencia
-    }
-    class ColaSolicitudes {
-        -vector~ItemCola~ elementos
-        +encolar(id, urgencia) void
-        +frente() int
-        +desencolar() void
-        +eliminar(id) void
-        +tamano() int
-    }
-    class Asignacion {
-        <<struct>>
-        +Monitor monitor
-        +string materiaAnterior
-        +string materiaNueva
-        +int idSolicitud
+        +double prioridad
     }
     class PilaAsignaciones {
         -vector~Asignacion~ elementos
         +push(a) void
         +pop() void
         +top() Asignacion
-        +isEmpty() bool
+        +actualizarMonitor(id, nuevo) void
+    }
+    class Asignacion {
+        <<struct>>
+        +Monitor* monitor
+        +string materiaNueva
+        +int idSolicitud
     }
     class BitacoraAsignaciones {
         -vector~string~ registros
         +registrar(texto) void
+    }
+    class GrafoPrerrequisitos {
+        -vector~string~ codigos
+        -vector~vector~int~~ lista
+        +bfs(inicio, orden, dist, padre) void
+        +contarDependientes(codigo) int
+        +materiasAfectadas(codigo) vector~string~
+        +tieneCiclo() bool
+    }
+    class JerarquiaMaterias {
+        -NodoJerarquia* raiz
+        +insertar(area, nivel, codigo, nombre) void
+        +materiasDeArea(area) vector~string~
         +mostrar() void
     }
-    class GestorArchivos {
-        -string rutaUsuarios
-        -string rutaMaterias
-        -string rutaSolicitudes
-        +cargarUsuarios(usuarios) bool
-        +guardarUsuarios(usuarios) bool
-        +cargarMaterias(materias) bool
-        +guardarMaterias(materias) bool
-        +cargarSolicitudes(solicitudes) bool
-        +guardarSolicitudes(solicitudes) bool
+    class NodoJerarquia {
+        <<struct>>
+        +int tipo
+        +string clave
+        +NodoJerarquia* hijo
+        +NodoJerarquia* hermano
     }
-
-    class Asignaciones {
-        <<utility>>
-        +asignarMateriaAMonitor() void
-        +asignarSolicitudAMonitor() bool
-        +deshacerAsignacion() void
+    class GestorArchivos {
+        +verificarEntorno() bool
+        +cargarUsuarios() / guardarUsuarios() bool
+        +cargarMaterias() / guardarMaterias() bool
+        +cargarSolicitudes() / guardarSolicitudes() bool
+        +cargarAsignaciones() / guardarAsignaciones() bool
+        +cargarEstadosMaterias() / guardarEstadosMaterias() bool
+        +cargarBitacora() / guardarBitacora() bool
     }
 
     Usuario <|-- Administrador
@@ -268,31 +343,27 @@ classDiagram
     Usuario <|-- Estudiante
     Estudiante <|-- Monitor
 
+    TablaHashUsuarios o-- Usuario : indexa por código
     ColaSolicitudes "1" *-- "0..*" ItemCola : contiene
     PilaAsignaciones "1" *-- "0..*" Asignacion : apila
     Asignacion --> Monitor : afecta a
-    Materia ..> BloqueHorario : se une en bloques
-
+    JerarquiaMaterias "1" *-- "1..*" NodoJerarquia
+    GrafoPrerrequisitos ..> Materia : se construye del catálogo
+    JerarquiaMaterias ..> Materia : se construye del catálogo
+    Solicitud --> BloqueHorario : sesión
+    Monitor --> BloqueHorario : disponibilidad
     ItemCola ..> Solicitud : referencia por id
-    Asignacion ..> Solicitud : idSolicitud
-    Monitor ..> Materia : por codigo
-    Monitor ..> Solicitud : por id
-    Solicitud ..> Materia : por codigo
-    Solicitud ..> Estudiante : por codigo
-
-    Asignaciones ..> PilaAsignaciones
-    Asignaciones ..> BitacoraAsignaciones
-    Asignaciones ..> ColaSolicitudes
-
+    Solicitud ..> Materia : por código
     GestorArchivos ..> Usuario
     GestorArchivos ..> Materia
     GestorArchivos ..> Solicitud
 ```
 
-- Un **Monitor es un Estudiante** con horario, una materia asignada y la solicitud que tiene en curso (`solicitudActual`, `0` = libre).
-- Los usuarios viven en un único `vector<Usuario*>`. Al iniciar sesión, el rol decide a qué clase se hace el `static_cast` y qué menú se abre. El registro y la persistencia usan `dynamic_cast` para distinguir tipos (probando `Monitor` antes que `Estudiante`, porque un monitor también es estudiante).
-- Las clases se relacionan **por código o por id** (una solicitud guarda el código de su materia, no un puntero). Por eso los datos se guardan como texto plano sin referencias frágiles. La única excepción es `Asignacion`, que apunta al monitor real para que "deshacer" actúe sobre el objeto verdadero.
-- `Asignaciones` agrupa **funciones libres**, no clases. Se dibuja como `<<utility>>` para mostrar qué usa. Los algoritmos de búsqueda y ordenamiento se distribuyeron en sus clases correspondientes (`Materia` y `Solicitud`) para seguir buenas prácticas de POO y alta cohesión.
+- Un **Monitor es un Estudiante** que además atiende una lista de materias y tiene su propia disponibilidad.
+- Los usuarios viven en un único `vector<Usuario*>`. Además se mantienen **dos tablas hash** (estudiantes y monitores) que apuntan a esos mismos objetos, para buscarlos por código sin recorrer el vector.
+- Las clases se relacionan **por código o por id**, así los datos se guardan como texto plano sin referencias frágiles. La excepción es `Asignacion`, que apunta al monitor real para que "deshacer" actúe sobre el objeto verdadero.
+- La **sesión** de una monitoría no es un objeto aparte que se guarde: es una vista de la solicitud asignada (monitor + bloque), lo que deja una sola fuente de verdad.
+- El grafo y el árbol **se reconstruyen desde el catálogo** cuando se necesitan, así nunca quedan desincronizados de `materias.txt`.
 
 ### Flujo de pruebas
 
@@ -300,42 +371,15 @@ Las pruebas siguen el recorrido natural de una monitoría, de menor a mayor comp
 
 ```mermaid
 flowchart LR
-    P1[1. Acceso<br/>login y entradas inválidas] --> P2[2. Consultas<br/>búsqueda · prerrequisitos · horario]
-    P2 --> P3[3. Solicitudes y cola<br/>crear y verificar prioridad]
-    P3 --> P4[4. Cancelación<br/>solicitud pendiente]
-    P4 --> P5[5. Asignación<br/>reglas de validación]
-    P5 --> P6[6. Atender y deshacer<br/>bitácora]
+    P1[1. Acceso<br/>login, inactivos, entradas inválidas] --> P2[2. Consultas<br/>hash · binaria · árbol · grafo]
+    P2 --> P3[3. Solicitudes<br/>crear y verificar prioridad]
+    P3 --> P4[4. Disponibilidad<br/>franjas y cruces]
+    P4 --> P5[5. Emparejar<br/>bloque común · reasignar]
+    P5 --> P6[6. Atender y deshacer<br/>bitácora · agenda · cobertura]
     P6 --> P7[7. Persistencia<br/>cerrar y reabrir]
 ```
 
-Resultados verificados ejecutando el programa con los archivos de `data/` originales:
-
-| # | Rol y opción | Entrada | Resultado verificado |
-|---|---|---|---|
-| 1 | Inicio de sesión | `admin` con clave incorrecta | `Usuario o contrasena incorrectos.` y vuelve al inicio |
-| 2 | Inicio de sesión | `admin` / `admin123` | Abre el menú del Administrador |
-| 3 | Cualquier menú | Escribir `abc` | `Opcion invalida.` sin cerrarse ni colgarse |
-| 4 | Admin, `3` | `MAT101` | Encuentra la materia: 5 comparaciones secuencial y 3 binaria |
-| 5 | Admin, `4` | `FIS105` | Cadena `FIS201` → `MAT101`, con sangría por nivel |
-| 6 | Admin, `12` | `FIS105` | `Martes, 10:00 AM - 12:00 PM` y `Viernes, 8:00 AM - 10:00 AM` |
-| 7 | Estudiante, `3` | `FIS105` urgencia 3 · `MAT101` urgencia 1 | `Solicitud #5 creada` y `Solicitud #6 creada` |
-| 8 | Monitor, `2` | Ver la cola | Orden: #5 (Alta), #1 (Media), #4 (Media), #6 (Baja). A igual urgencia, la más antigua primero |
-| 9 | Estudiante, `5` | Cancelar #4, y otra vez #4 | `Solicitud #4 cancelada.` y luego `Solo se pueden cancelar solicitudes pendientes.` |
-| 10 | Admin, `6` | `monitor`, `MAT101` | `Se asigno la materia MAT101 a Julian.` |
-| 11 | Admin, `9` | `monitor`, solicitud #5 (`FIS105`) | `El monitor no atiende la materia FIS105.` y no se asigna |
-| 12 | Admin, `9` | `monitor`, solicitud #1 (`MAT101`) | `Solicitud #1 asignada a Julian.` y pasa a `Asignada` |
-| 13 | Admin, `9` | `monitor`, solicitud #6 | `El monitor ya tiene asignada la solicitud #1.` |
-| 14 | Admin, `7` | Deshacer | La solicitud vuelve a la cola como `Pendiente` y el monitor queda libre |
-| 15 | Admin, `10` | Ver bitácora | 3 registros: asignación de materia, asignación de solicitud y reversión |
-
-Casos que parten de nuevo de los datos originales:
-
-| # | Rol y opción | Entrada | Resultado verificado |
-|---|---|---|---|
-| 16 | Admin `6` y `9`, luego Monitor `4` | Asignar #1 y terminarla | La solicitud pasa a `Atendida` y la franja del monitor queda libre |
-| 17 | Admin, `7` | Deshacer tras atender | `No se puede deshacer: la solicitud #1 ya no esta asignada (fue atendida).` |
-| 18 | Monitor, `5` | Ordenar por urgencia (`1`) | Alta primero y `(merge sort: 4 comparaciones)` |
-| 19 | Cerrar y reabrir | Salir con #1 en `Asignada` | En el archivo queda `Asignada`; al reiniciar vuelve a `Pendiente` y aparece en la cola |
+La matriz completa está en [`casos_prueba_HU-JH.xlsx`](Documentacion/casos_prueba_HU-JH.xlsx): **68 casos sobre 18 historias de usuario, 59 pasan, 0 fallan y 9 siguen pendientes** (HU-33, HU-34 y HU-36).
 
 ---
 
@@ -345,107 +389,146 @@ Casos que parten de nuevo de los datos originales:
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Pendiente: el estudiante la crea y entra a la cola
-    Pendiente --> Asignada: el administrador la asigna a un monitor libre
+    [*] --> Pendiente: el estudiante la crea, se calcula su prioridad y entra a la cola
+    Pendiente --> Asignada: emparejamiento automático o asignación manual
     Pendiente --> Atendida: el monitor atiende el frente de la cola
     Pendiente --> Cancelada: el estudiante la cancela y sale de la cola
+    Asignada --> Asignada: se reasigna a otro monitor
     Asignada --> Atendida: el monitor termina su solicitud
-    Asignada --> Pendiente: se deshace la asignación y vuelve a la cola
+    Asignada --> Pendiente: se deshace, o el monitor queda inactivo
     Atendida --> [*]
     Cancelada --> [*]
 ```
 
-Para asignar una solicitud el sistema exige que exista, que esté `Pendiente`, que el monitor atienda **esa materia** y que esté **libre**. Si algo falla, no se cambia nada.
+### Prioridad con tres criterios
 
-### La cola con prioridad
+La urgencia ya no la declara el estudiante, porque eso era justo lo que alimentaba la percepción de favoritismo. Cada solicitud pendiente recibe un puntaje entre 0 y 1:
 
-`ColaSolicitudes` es una cola propia (sobre un `vector`) que se mantiene **ordenada por urgencia, de mayor a menor**. Al encolar, se avanza mientras el elemento actual tenga mayor urgencia, o la misma urgencia pero un id menor (más antigua), y se inserta ahí. Eso da tres garantías:
+```
+P = 0,30 · P1 (semestre)  +  0,40 · P2 (dependencia)  +  0,30 · P3 (antigüedad)
+```
 
-- Una solicitud **Alta** siempre pasa delante de las **Media** y **Baja**.
-- Entre solicitudes de la **misma urgencia** se respeta el orden de llegada.
-- Una solicitud **reencolada** al deshacer una asignación recupera su lugar por antigüedad, en vez de quedar al final de su urgencia.
+| Criterio | Cálculo | Idea |
+|---|---|---|
+| **P1 – Semestre** | 1 si el estudiante está en 1–2 u 8–9; 0 en otro caso | Atender primero a quien apenas se adapta y a quien está por graduarse |
+| **P2 – Dependencia** | `d / dmáx`, con `d` = materias que dependen de la solicitada (BFS en el grafo) | Una materia de la que cuelga medio plan pesa más |
+| **P3 – Antigüedad** | 0 hoy · 0,25 con 1–2 días · 0,45 con 3 · 0,6 con 4–6 · 1 desde 7 días | Ninguna solicitud se queda esperando para siempre |
 
-Al reiniciar el programa, la cola se reconstruye a partir de las solicitudes con estado `Pendiente`.
+La urgencia que se muestra se deriva del puntaje: **Alta** si P ≥ 0,66, **Media** si P ≥ 0,33 y **Baja** en otro caso. La cola se mantiene ordenada de mayor a menor prioridad y, a igual prioridad, va primero la más antigua (id menor), de modo que una solicitud reencolada al deshacer recupera su lugar.
+
+### Emparejamiento sin cruces
+
+`buscarBloqueComun` recorre la disponibilidad del monitor y busca el primer bloque de **1 hora** (2 franjas de 30 min) que:
+
+1. cabe en la disponibilidad del estudiante (si la registró),
+2. no se cruza con la clase de la materia,
+3. no se cruza con otra sesión del mismo monitor ni del mismo estudiante.
+
+El emparejamiento automático (opción `21`) prueba con cada monitor **activo**, **libre** y que **domine la materia**. Si ninguno sirve, la solicitud sigue pendiente y no se cambia nada.
 
 ### La pila de asignaciones y la bitácora
 
-Cada vez que el administrador asigna algo (una materia a un monitor, o una solicitud a un monitor libre), se apila un registro con el monitor, la materia anterior, la nueva y el id de la solicitud (`0` si solo cambió la materia). **Deshacer** hace `pop` y revierte según el tipo:
+Cada asignación (una materia a un monitor, o una solicitud a un monitor) se apila. **Deshacer** hace `pop` y revierte: la materia se le quita al monitor, o la solicitud vuelve a `Pendiente`, regresa a la cola y libera al monitor. Al **reasignar**, las entradas de la pila se actualizan al nuevo monitor para que deshacer después libere al correcto.
 
-- **Asignación de materia:** se restaura la materia anterior.
-- **Asignación de solicitud:** la solicitud vuelve a `Pendiente`, regresa a la cola y el monitor queda libre. Si ya fue atendida, no se puede "des-atender" y el sistema lo avisa.
+La **bitácora** es de solo agregar y ahora se guarda en `bitacora.txt`: deshacer **no** borra nada, así que queda el rastro completo de cada asignación y reversión, incluso entre ejecuciones.
 
-La **bitácora** es un registro de solo agregar: deshacer **no** borra nada de ella, así que queda el rastro completo de cada asignación y reversión.
+### Grafo y jerarquía
+
+- **Grafo:** cada materia es un vértice y hay una arista `A → B` cuando A es prerrequisito de B. Un BFS desde una materia da, por niveles, todo lo que queda bloqueado si se reprueba o retira. El administrador puede aplicarlo al historial de un estudiante (opción `24`).
+- **Árbol:** Catálogo → Área → Nivel → Materia. Los hermanos se insertan ordenados, así que el recorrido en preorden imprime la jerarquía ya ordenada.
 
 ### Horarios de materias
 
-Cada materia tiene una matriz `horario[6][28]`: 6 días (lunes a sábado) × 28 franjas de 30 minutos (6:00 AM a 8:00 PM). Al mostrarla, el sistema recorre cada día y **une las franjas ocupadas consecutivas en bloques** (`Martes, 10:00 AM - 12:00 PM`). En el archivo se guarda de forma compacta: `1@4-10|3@8-14` significa "día 1 de la franja 4 a la 10, y día 3 de la 8 a la 14".
+Cada materia tiene una matriz `horario[6][28]`: 6 días (lunes a sábado) × 28 franjas de 30 minutos (6:00 AM a 8:00 PM). Al mostrarla, el sistema **une las franjas consecutivas en bloques** (`Martes, 10:00 AM - 12:00 PM`). En el archivo se guarda de forma compacta: `1@4-10|3@8-14`.
 
 ---
 
 ## Algoritmos y complejidad
 
-Las búsquedas y ordenamientos **cuentan sus comparaciones** y las muestran en pantalla, para poder comparar algoritmos con datos reales en lugar de solo con teoría.
+Las búsquedas y ordenamientos **cuentan sus comparaciones** y las muestran en pantalla.
 
-| Algoritmo | Dónde se usa | Complejidad | Notas |
-|---|---|---|---|
-| Búsqueda secuencial | Materias y solicitudes por id | O(n) | No exige orden |
-| Búsqueda binaria | Materias por código (validaciones, prerrequisitos, horarios, generación de códigos) | O(log n) | Exige el vector ordenado por código |
-| Ordenamiento por **inserción** | Insertar una materia nueva en su lugar; opción del listado | O(n²) · O(n) si está casi ordenado | Básico |
-| Ordenamiento **merge sort** | Orden inicial por código al arrancar; opción del listado | O(n log n) | Recursivo, usa memoria auxiliar |
-| Ordenamiento **quick sort** | Opción del listado | O(n log n) promedio | Recursivo, pivote central para evitar el peor caso en datos ya ordenados |
-| **Merge sort de solicitudes** | Listar solicitudes por urgencia, antigüedad o materia | O(s log s) | Siempre desempata por id, así el resultado es determinista |
-| **Recursión** sobre prerrequisitos | Cadena completa de prerrequisitos de una materia | O(k · log n), k = prerrequisitos visitados | Caso base: materia sin prerrequisitos |
-| Horario: bloques y texto | Mostrar, guardar y cargar horarios | O(días × franjas) = constante (6 × 28) | Une franjas consecutivas en bloques |
-| Encolar / desencolar | Cola de solicitudes | O(q) · `frente` O(1) | Implementada sobre vector |
-| `push` / `pop` | Pila de asignaciones | O(1) | |
+| Algoritmo / estructura | Dónde se usa | Complejidad |
+|---|---|---|
+| **Tabla hash** (encadenamiento) | Estudiantes y monitores por código | O(1) promedio · O(n) peor |
+| Búsqueda secuencial | Materias y solicitudes por id | O(n) |
+| Búsqueda binaria | Materias por código; vértices del grafo | O(log n) |
+| Ordenamiento por **inserción** | Listado de materias; agenda semanal | O(n²) · O(n) casi ordenado |
+| **Merge sort** | Orden inicial por código; listados | O(n log n) |
+| **Quick sort** | Listado de materias (pivote central) | O(n log n) promedio |
+| **Merge sort de solicitudes** | Por urgencia, antigüedad o materia | O(s log s) |
+| **Recursión** sobre prerrequisitos | Cadena hacia atrás de una materia | O(k · log n) |
+| **BFS** en el grafo | Dependientes y materias afectadas | O(V + E) |
+| Detección de ciclos | Validar que el plan sea cursable | O(V + E) |
+| Recorridos del **árbol** (preorden/postorden) | Jerarquía, materias de un área, liberar memoria | O(nodos) |
+| Recalcular prioridades | Al iniciar y desde la opción `20` | O(s·(V + E) + s·q) |
+| Buscar bloque común | Emparejar y reasignar | O(F · S) |
+| Encolar / desencolar · `frente` | Cola de solicitudes | O(q) · O(1) |
+| `push` / `pop` | Pila de asignaciones | O(1) |
+
+*n = materias, s = solicitudes, q = tamaño de la cola, V y E = vértices y aristas del grafo, F = franjas de disponibilidad, S = sesiones asignadas, k = prerrequisitos visitados.* La justificación método por método está en [`Tabla_de_complejidad_proyecto.xlsx`](Documentacion/Tabla_de_complejidad_proyecto.xlsx).
 
 ---
 
 ## Formato de los datos
 
-Archivos de texto separados por comas. Las líneas vacías o que empiezan por `#` se ignoran.
+Archivos de texto separados por comas, en `Proyecto/data/`. Las columnas nuevas son opcionales, así que los archivos de versiones anteriores se siguen leyendo.
 
 **`materias.txt`**
 ```text
-Codigo,Nombre,Creditos,Tipo,Prerrequisitos(separados por ';'),Horario
-FIS105,Fisica diferencial,3,Obligatoria,FIS201,1@8-12|4@4-8
+Codigo,Nombre,Creditos,Tipo,Prerrequisitos(;),Horario,Area,Nivel
+FIS105,Fisica diferencial,3,Obligatoria,FIS201,1@8-12|4@4-8,Fisica,2
 ```
-El horario son bloques `dia@inicio-fin` separados por `|`. Día: `0` = lunes … `5` = sábado. Franja: `0` = 6:00 AM, y cada una dura 30 minutos. Puede ir vacío.
+El horario son bloques `dia@inicio-fin` separados por `|`. Día: `0` = lunes … `5` = sábado. Franja: `0` = 6:00 AM, y cada una dura 30 minutos.
 
 **`solicitudes.txt`**
 ```text
-Id,CodigoEstudiante,CodigoMateria,Urgencia(1-3),Estado,Descripcion
-2,1,PROG102,3,Atendida,Dudas sobre polimorfismo y herencia
+Id,CodigoEstudiante,CodigoMateria,Urgencia(1-3),Estado,FechaCreacion(epoch),Descripcion
+1,1,MAT101,2,Pendiente,1795439714,Refuerzo en integrales definidas
 ```
-La descripción es el último campo, por lo que **sí puede contener comas**. Estados válidos: `Pendiente`, `Asignada`, `Atendida`, `Cancelada`.
+La descripción es el último campo, así que **puede contener comas**. Estados: `Pendiente`, `Asignada`, `Atendida`, `Cancelada`.
 
-**`usuarios.txt`** — las columnas finales dependen del rol:
+**`usuarios.txt`**: las columnas finales dependen del rol.
 ```text
 Administrador,Nombres,Apellidos,Usuario,Clave,Activo,CodigoAdmin
-Estudiante,Nombres,Apellidos,Usuario,Clave,Activo,CodigoEst,Carrera,Semestre
-Monitor,Nombres,Apellidos,Usuario,Clave,Activo,CodigoEst,Carrera,Semestre,CodigoMonitor,Horario,MateriaAsignada
-Profesor,Nombres,Apellidos,Usuario,Clave,Activo,Departamento
+Estudiante,...,Activo,CodigoEst,Carrera,Semestre,Franjas
+Monitor,...,Activo,CodigoEst,Carrera,Semestre,CodigoMonitor,Horario,Materias(;),Reservada,Franjas(|)
+Profesor,...,Activo,Departamento,CodigoProfesor,Area
 ```
 
-> El programa localiza `data/` automáticamente tanto si lo ejecutas desde `Proyecto/` o desde la raíz del repositorio.
+**Archivos nuevos**
+
+| Archivo | Formato |
+|---|---|
+| `asignaciones.txt` | `IdSolicitud,CodigoMonitor,dia@inicio-fin` |
+| `estados_materias.txt` | `CodigoEstudiante,CodigoMateria,Estado` |
+| `bitacora.txt` | Una línea por registro |
+
+> Si falta `data/` o `usuarios.txt`, el programa lo avisa antes de iniciar y no arranca.
 
 ---
 
 ## Estado de los requerimientos
 
-> El detalle de cada requerimiento (qué falta, historias de usuario y criterios de priorización) está en el informe [`Proyecto-Informe-IEEE.pdf`](Documentacion/Proyecto-Informe-IEEE.pdf).
+| # | Requerimiento | Oct. 2026 | Final |
+|---|---|---|---|
+| 1 | Registro de usuarios y materias con disponibilidad | Parcial | ✅ Cumplido |
+| 2 | Solicitudes de monitoría e historial | Cumplido | ✅ Cumplido |
+| 3 | Cola con prioridad | Cumplido | ✅ Cumplido (3 criterios) |
+| 4 | Revertir asignaciones (pila) y bitácora | Cumplido | ✅ Cumplido (bitácora persistente) |
+| 5 | Búsqueda inmediata por código | Pendiente | ✅ Cumplido (tabla hash) |
+| 6 | Ordenamientos | Cumplido | ✅ Cumplido |
+| 7 | Jerarquía de materias por área y nivel | Pendiente | ✅ Cumplido (árbol) |
+| 8 | Red de prerrequisitos | Parcial | ✅ Cumplido (grafo + BFS) |
+| 9 | Agenda semanal sin cruces e informe de cobertura | Parcial | ✅ Cumplido |
 
-| # | Requerimiento | Estado |
-|---|---|---|
-| 1 | Registro de usuarios y materias | Implementado |
-| 2 | Solicitudes de monitoría e historial | Implementado |
-| 3 | Cola con prioridad por urgencia | Implementado |
-| 4 | Revertir la última asignación (pila) y bitácora | Implementado |
-| 5 | Búsqueda por código (secuencial y binaria) | Implementado |
-| 6 | Ordenamientos (materias: inserción, merge sort, quick sort · solicitudes: merge sort) | Implementado |
-| 7 | Jerarquía de materias por área y nivel | Pendiente |
-| 8 | Grafo de prerrequisitos | En diseño: hoy se recorren recursivamente desde cada materia; `Grafo.h` es solo el concepto |
-| 9 | Agenda semanal sin cruces e informe de cobertura | En progreso: el horario semanal por materia (matriz día × franja) ya funciona; faltan la detección de cruces y el informe de cobertura |
+**Requerimientos no funcionales:** RNF-03 (sin internet ni base de datos) y RNF-04 (código documentado) se cumplen. RNF-02 (búsqueda en tiempo constante) quedó resuelto con la tabla hash. RNF-01 (500 registros) y RNF-05 (versión en Python) no se realizaron, por acuerdo con el equipo docente.
+
+### Limitaciones conocidas
+
+- Las contraseñas se guardan en texto plano.
+- `Menus.cpp` conserva una versión antigua de `cambiarEstadoUsuario` sin uso, que produce la única advertencia del compilador.
+- `GrafoPrerrequisitos::mostrarCadena` (camino más corto entre dos materias) está implementado, pero ningún menú lo llama.
+- `Solicitud::mostrarInfo` todavía no muestra el monitor ni el bloque de la sesión.
 
 ---
 
@@ -453,18 +536,19 @@ Profesor,Nombres,Apellidos,Usuario,Clave,Activo,Departamento
 
 Todo el material de apoyo vive en la carpeta [`Documentacion/`](Documentacion/):
 
-| Archivo | Qué contiene | Dónde se ve en este README |
-|---|---|---|
-| Diagramas en PNG: [`1_arquitectura.png`](Documentacion/1_arquitectura.png), [`2_clases.png`](Documentacion/2_clases.png), [`3_flujo_de_pruebas.png`](Documentacion/3_flujo_de_pruebas.png) | Exportados del código Mermaid de este README, para usar en informes o presentaciones | [Arquitectura](#arquitectura) |
-| [`Tabla_de_complejidad_proyecto.xlsx`](Documentacion/Tabla_de_complejidad_proyecto.xlsx) | Big O de cada método, con su justificación | [Tabla de complejidad por método](#tabla-de-complejidad-por-método) |
-| [`Proyecto-Informe-IEEE.pdf`](Documentacion/Proyecto-Informe-IEEE.pdf) | Informe de estado de implementación en formato IEEE: estado de los RF y RNF, criterios de priorización con grafo, historias de usuario y limitaciones | [Estado de los requerimientos](#estado-de-los-requerimientos) |
+| Archivo | Qué contiene |
+|---|---|
+| [`Proyecto-Informe-IEEE.pdf`](Documentacion/Proyecto-Informe-IEEE.pdf) | Informe final en formato IEEE: arquitectura, novedades, estado de los RF y RNF, complejidad, pruebas y limitaciones |
+| [`Tabla_de_complejidad_proyecto.xlsx`](Documentacion/Tabla_de_complejidad_proyecto.xlsx) | Big O de cada método, con su justificación |
+| [`casos_prueba_HU-JH.xlsx`](Documentacion/casos_prueba_HU-JH.xlsx) | 68 casos de prueba por historia de usuario, resumen y flujos |
+| Diagramas en PNG: `1_arquitectura.png`, `2_clases.png`, `3_flujo_de_pruebas.png` | Exportados del código Mermaid de este README |
 
-Los diagramas del README están escritos en Mermaid (se ven directo en GitHub). Para exportarlos a imagen se puede usar [`mermaid-cli`](https://github.com/mermaid-js/mermaid-cli): `mmdc -i diagrama.mmd -o Documentacion/diagrama.png -s 3 -b white`. Si cambia el código, hay que actualizar la imagen y la fila correspondiente de la tabla de complejidad.
+Los diagramas del README están escritos en Mermaid y se ven directamente en GitHub. Para exportarlos a imagen se puede usar [`mermaid-cli`](https://github.com/mermaid-js/mermaid-cli): `mmdc -i diagrama.mmd -o Documentacion/diagrama.png -s 3 -b white`.
 
 ---
 
 <p align="center">
-  Proyecto del curso <b>Algoritmos y Estructuras de Datos</b> · 2026-S2<br>
-  <b>Julian Hernandez Y</b> · <b>David Arteaga</b>
+  Proyecto del curso <b>Algoritmos y Estructuras de Datos</b> · Universidad del Rosario · 2026-S2<br>
+  <b>Julian David Hernández</b> · <b>David Santiago Arteaga</b><br>
+  Docente: Tatiana Cabrera
 </p>
-
